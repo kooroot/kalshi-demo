@@ -13,6 +13,7 @@ export function LandingPage() {
   const [privateKey, setPrivateKey] = useState("");
   const [fileError, setFileError] = useState("");
   const [typedText, setTypedText] = useState("");
+  const [isTypingFinished, setIsTypingFinished] = useState(false);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -20,7 +21,7 @@ export function LandingPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchNotFound, setSearchNotFound] = useState(false);
 
-  const fullText = "Protect your portfolio, discover new alpha_";
+  const fullText = "Protect your portfolio, discover new alpha";
 
   useEffect(() => {
     let i = 0;
@@ -29,6 +30,7 @@ export function LandingPage() {
         setTypedText(fullText.slice(0, i + 1));
         i++;
       } else {
+        setIsTypingFinished(true);
         clearInterval(typeInterval);
       }
     }, 50);
@@ -170,9 +172,9 @@ export function LandingPage() {
             </h1>
 
             {/* Typewriter text */}
-            <div className="mt-6 h-6">
-              <p className="text-terminal-cyan text-xs md:text-sm font-mono tracking-widest inline-block border-r-2 border-terminal-green pr-1 animate-blink">
-                {typedText}
+            <div className="mt-6 h-6 flex items-center justify-center">
+              <p className="text-terminal-cyan text-xs md:text-sm font-mono tracking-widest inline-block">
+                {typedText}<span className={`text-terminal-green ${isTypingFinished ? 'animate-blink' : ''}`}>_</span>
               </p>
             </div>
           </div>

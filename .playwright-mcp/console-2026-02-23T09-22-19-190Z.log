@@ -1,0 +1,5 @@
+[   33465ms] [ERROR] WebSocket connection to 'ws://localhost:5176/?token=td7l55LyOxpM' failed:  @ http://localhost:5176/@vite/client:744
+[   33648ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3003/api/profile/kooroot:0
+[   34650ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3003/api/profile/kooroot:0
+[   36652ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3003/api/profile/kooroot:0
+[   40655ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3003/api/profile/kooroot:0
