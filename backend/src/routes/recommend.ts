@@ -1,20 +1,29 @@
 import { Hono } from 'hono'
-import { getProfile } from '../db'
+import { getProfile, getProfileByUsername } from '../db'
 import { getRecommendations, analyzePersonality } from '../services/analyzer'
-import { credentialsStore } from './connect'
+import { credentialsStore, usernameToProfileId } from './connect'
+import type { Profile } from '../db'
 
 export const recommendRoute = new Hono()
 
+function resolveProfile(identifier: string): Profile | undefined {
+  const isUUID = /^[a-f0-9-]{36}$/i.test(identifier)
+  if (!isUUID) {
+    return getProfileByUsername(identifier)
+  }
+  return getProfile(identifier)
+}
+
 recommendRoute.get('/:id', async (c) => {
   try {
-    const profileId = c.req.param('id')
+    const identifier = c.req.param('id')
 
-    const profile = getProfile(profileId)
+    const profile = resolveProfile(identifier)
     if (!profile) {
       return c.json({ error: 'Profile not found' }, 404)
     }
 
-    const credentials = credentialsStore.get(profileId)
+    const credentials = credentialsStore.get(profile.id)
     if (!credentials) {
       return c.json({
         error: 'Session expired. Please reconnect.',
@@ -34,7 +43,7 @@ recommendRoute.get('/:id', async (c) => {
     const recommendations = await getRecommendations(credentials, analysis)
 
     return c.json({
-      profileId,
+      profileId: profile.id,
       recommendations
     })
   } catch (error) {

@@ -69,14 +69,24 @@ async function publicFetch<T>(path: string): Promise<T> {
 }
 
 // API Functions
-export async function verifyCredentials(credentials: KalshiCredentials): Promise<boolean> {
+export async function verifyCredentials(credentials: KalshiCredentials): Promise<{ valid: boolean; username?: string }> {
   try {
     const result = await kalshiFetch(credentials, 'GET', '/portfolio/balance')
-    console.log('✅ Credentials verified, balance:', result)
-    return true
+    console.log('Credentials verified, balance:', result)
+
+    // Try to fetch username from account info
+    let username: string | undefined
+    try {
+      const memberInfo = await kalshiFetch<{ member: { username?: string } }>(credentials, 'GET', '/members/me')
+      username = memberInfo?.member?.username
+    } catch {
+      // Some API configs may not support this endpoint — not critical
+    }
+
+    return { valid: true, username }
   } catch (error) {
-    console.error('❌ Credential verification failed:', error)
-    return false
+    console.error('Credential verification failed:', error)
+    return { valid: false }
   }
 }
 

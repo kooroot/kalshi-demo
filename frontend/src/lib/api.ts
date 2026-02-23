@@ -47,7 +47,7 @@ export interface MarketRecommendation {
   kalshiUrl: string
 }
 
-export async function connectKalshi(apiKeyId: string, privateKeyPem: string): Promise<{ profileId: string }> {
+export async function connectKalshi(apiKeyId: string, privateKeyPem: string): Promise<{ profileId: string; username: string | null }> {
   const response = await fetch(`${API_BASE}/connect`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -64,8 +64,10 @@ export async function connectKalshi(apiKeyId: string, privateKeyPem: string): Pr
 
 export async function getProfile(profileId: string): Promise<{
   profileId: string
+  username: string | null
   analysis: PersonalityAnalysis
   cached: boolean
+  isOwner: boolean
 }> {
   const response = await fetch(`${API_BASE}/profile/${profileId}`)
 
@@ -79,7 +81,9 @@ export async function getProfile(profileId: string): Promise<{
 
 export async function refreshProfile(profileId: string): Promise<{
   profileId: string
+  username: string | null
   analysis: PersonalityAnalysis
+  isOwner: boolean
 }> {
   const response = await fetch(`${API_BASE}/profile/${profileId}/refresh`, {
     method: 'POST',
@@ -102,6 +106,25 @@ export async function getRecommendations(profileId: string): Promise<{
   if (!response.ok) {
     const error = await response.json()
     throw new Error(error.error || 'Failed to get recommendations')
+  }
+
+  return response.json()
+}
+
+export interface SearchResult {
+  username: string
+  profileId: string
+}
+
+export async function searchProfiles(query: string): Promise<{
+  found: boolean
+  results: SearchResult[]
+}> {
+  const response = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}`)
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'Search failed')
   }
 
   return response.json()

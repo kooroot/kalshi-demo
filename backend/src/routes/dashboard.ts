@@ -1,11 +1,26 @@
 import { Hono } from 'hono'
-import { credentialsStore } from './connect'
+import { credentialsStore, usernameToProfileId } from './connect'
 import { analyzePortfolioRisk, analyzeOrderbook, calculateHedge } from '../services/shield'
 import { getBalance, createOrder } from '../services/kalshi'
+import { getProfileByUsername } from '../db'
 
 export const dashboardRoute = new Hono()
 
-function getCredentials(profileId: string) {
+function resolveProfileId(identifier: string): string {
+  const isUUID = /^[a-f0-9-]{36}$/i.test(identifier)
+  if (!isUUID) {
+    // Try in-memory map first
+    const mapped = usernameToProfileId.get(identifier.toLowerCase())
+    if (mapped) return mapped
+    // Fallback to DB lookup
+    const profile = getProfileByUsername(identifier)
+    if (profile) return profile.id
+  }
+  return identifier
+}
+
+function getCredentials(identifier: string) {
+  const profileId = resolveProfileId(identifier)
   const creds = credentialsStore.get(profileId)
   if (!creds) return null
   return creds
@@ -13,8 +28,8 @@ function getCredentials(profileId: string) {
 
 // Portfolio positions + risk analysis
 dashboardRoute.get('/positions/:id', async (c) => {
-  const profileId = c.req.param('id')
-  const credentials = getCredentials(profileId)
+  const id = c.req.param('id')
+  const credentials = getCredentials(id)
 
   if (!credentials) {
     return c.json({ error: 'Session expired. Please reconnect.', needsReconnect: true }, 401)
@@ -31,8 +46,8 @@ dashboardRoute.get('/positions/:id', async (c) => {
 
 // Balance
 dashboardRoute.get('/balance/:id', async (c) => {
-  const profileId = c.req.param('id')
-  const credentials = getCredentials(profileId)
+  const id = c.req.param('id')
+  const credentials = getCredentials(id)
 
   if (!credentials) {
     return c.json({ error: 'Session expired. Please reconnect.', needsReconnect: true }, 401)
@@ -89,8 +104,8 @@ dashboardRoute.post('/hedge/calculate', async (c) => {
 
 // Execute hedge order
 dashboardRoute.post('/hedge/execute/:id', async (c) => {
-  const profileId = c.req.param('id')
-  const credentials = getCredentials(profileId)
+  const id = c.req.param('id')
+  const credentials = getCredentials(id)
 
   if (!credentials) {
     return c.json({ error: 'Session expired. Please reconnect.', needsReconnect: true }, 401)
