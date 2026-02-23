@@ -235,3 +235,65 @@ export async function getSeriesList() {
     }>
   }>('/series')
 }
+
+// Orderbook
+export async function getOrderbook(ticker: string) {
+  return publicFetch<{
+    orderbook: {
+      yes: Array<[number, number]>  // [price, quantity]
+      no: Array<[number, number]>
+    }
+  }>(`/markets/${ticker}/orderbook`)
+}
+
+// Create order
+export async function createOrder(credentials: KalshiCredentials, order: {
+  ticker: string
+  action: 'buy' | 'sell'
+  side: 'yes' | 'no'
+  type: 'limit' | 'market'
+  count: number
+  yes_price?: number
+  no_price?: number
+}) {
+  return kalshiFetch<{
+    order: {
+      order_id: string
+      ticker: string
+      status: string
+      action: string
+      side: string
+      type: string
+      yes_price: number
+      no_price: number
+      count: number
+      remaining_count: number
+      created_time: string
+    }
+  }>(credentials, 'POST', '/portfolio/orders', order)
+}
+
+// Get orders
+export async function getOrders(credentials: KalshiCredentials, params?: { ticker?: string; status?: string }) {
+  const searchParams = new URLSearchParams()
+  if (params?.ticker) searchParams.set('ticker', params.ticker)
+  if (params?.status) searchParams.set('status', params.status)
+  const query = searchParams.toString()
+
+  return kalshiFetch<{
+    orders: Array<{
+      order_id: string
+      ticker: string
+      status: string
+      action: string
+      side: string
+      type: string
+      yes_price: number
+      no_price: number
+      count: number
+      remaining_count: number
+      created_time: string
+    }>
+    cursor: string | null
+  }>(credentials, 'GET', `/portfolio/orders${query ? `?${query}` : ''}`)
+}

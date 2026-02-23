@@ -106,3 +106,126 @@ export async function getRecommendations(profileId: string): Promise<{
 
   return response.json()
 }
+
+// Shield types
+export interface PositionData {
+  ticker: string
+  eventTicker: string
+  title: string
+  side: 'yes' | 'no'
+  quantity: number
+  avgPrice: number
+  currentPrice: number
+  marketExposure: number
+  unrealizedPnl: number
+  category: string
+}
+
+export interface RiskAlert {
+  type: string
+  severity: 'warning' | 'critical'
+  message: string
+  detail: string
+}
+
+export interface PortfolioRisk {
+  positions: PositionData[]
+  totalExposure: number
+  totalUnrealizedPnl: number
+  categoryBreakdown: { name: string; percentage: number; exposure: number }[]
+  directionBias: { yes: number; no: number }
+  alerts: RiskAlert[]
+}
+
+export interface OrderbookAnalysis {
+  ticker: string
+  bestYesBid: number
+  bestYesAsk: number
+  bestNoBid: number
+  bestNoAsk: number
+  spread: number
+  yesBids: Array<{ price: number; quantity: number }>
+  noBids: Array<{ price: number; quantity: number }>
+}
+
+export interface HedgeCalculation {
+  ticker: string
+  hedgeSide: 'yes' | 'no'
+  contractsNeeded: number
+  pricePerContract: number
+  totalCost: number
+  effectiveAvgPrice: number
+  slippage: number
+  potentialPayout: number
+  defenseAmount: number
+  costAsPercentage: number
+}
+
+export interface BalanceData {
+  balanceCents: number
+  balanceDollars: string
+  portfolioValueCents: number
+  portfolioValueDollars: string
+}
+
+// Shield API functions
+export async function getPortfolioRisk(profileId: string): Promise<PortfolioRisk> {
+  const response = await fetch(`${API_BASE}/dashboard/positions/${profileId}`)
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'Failed to load positions')
+  }
+  return response.json()
+}
+
+export async function getBalance(profileId: string): Promise<BalanceData> {
+  const response = await fetch(`${API_BASE}/dashboard/balance/${profileId}`)
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'Failed to load balance')
+  }
+  return response.json()
+}
+
+export async function getOrderbook(ticker: string): Promise<OrderbookAnalysis> {
+  const response = await fetch(`${API_BASE}/dashboard/orderbook/${ticker}`)
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'Failed to load orderbook')
+  }
+  return response.json()
+}
+
+export async function calculateHedge(ticker: string, hedgeSide: 'yes' | 'no', defenseAmount: number): Promise<{
+  calculation: HedgeCalculation
+  orderbook: OrderbookAnalysis
+}> {
+  const response = await fetch(`${API_BASE}/dashboard/hedge/calculate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ticker, hedgeSide, defenseAmount }),
+  })
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'Failed to calculate hedge')
+  }
+  return response.json()
+}
+
+export async function executeHedge(profileId: string, params: {
+  ticker: string
+  side: 'yes' | 'no'
+  count: number
+  price: number
+}): Promise<{ success: boolean; order: { orderId: string; ticker: string; status: string; side: string; count: number; price: number } }> {
+  const response = await fetch(`${API_BASE}/dashboard/hedge/execute/${profileId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  })
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'Failed to execute hedge')
+  }
+  return response.json()
+}

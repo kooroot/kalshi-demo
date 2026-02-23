@@ -6,6 +6,7 @@ import './index.css'
 
 import { LandingPage } from './routes/landing'
 import { ProfilePage } from './routes/profile'
+import { DashboardPage } from './routes/dashboard'
 
 const queryClient = new QueryClient()
 
@@ -24,7 +25,13 @@ const profileRoute = createRoute({
   component: ProfilePage,
 })
 
-const routeTree = rootRoute.addChildren([landingRoute, profileRoute])
+const dashboardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/dashboard/$profileId',
+  component: DashboardPage,
+})
+
+const routeTree = rootRoute.addChildren([landingRoute, profileRoute, dashboardRoute])
 
 const router = createRouter({ routeTree })
 

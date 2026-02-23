@@ -154,10 +154,9 @@ export async function analyzePersonality(credentials: KalshiCredentials): Promis
   let totalPrice = 0
 
   for (const fill of fills) {
-    // For buys, use the price of the side they bought
-    const entryPrice = fill.action === 'buy'
-      ? (fill.side === 'yes' ? fill.yes_price : fill.no_price)
-      : (fill.side === 'yes' ? fill.yes_price : fill.no_price)
+    // Kalshi API only provides yes_price; no_price = 100 - yes_price
+    const noPrice = 100 - fill.yes_price
+    const entryPrice = fill.side === 'yes' ? fill.yes_price : noPrice
 
     totalPrice += entryPrice
 
@@ -175,20 +174,19 @@ export async function analyzePersonality(credentials: KalshiCredentials): Promis
     riskType = 'conservative'
   }
 
-  // 3. Win rate
+  // 3. Win rate (revenue-based: actual profit determines win/loss)
   let wins = 0
   let losses = 0
 
   for (const s of settlements) {
     if (s.market_result === 'void') continue
 
-    // Win if we had position on winning side
-    const hadYes = s.yes_count > 0
-    const hadNo = s.no_count > 0
+    const totalCostForMarket = s.yes_total_cost + s.no_total_cost
+    if (totalCostForMarket === 0) continue
 
-    if (s.market_result === 'yes' && hadYes) wins++
-    else if (s.market_result === 'no' && hadNo) wins++
-    else if (hadYes || hadNo) losses++
+    // Revenue > cost = profitable = win
+    if (s.revenue > totalCostForMarket) wins++
+    else losses++
   }
 
   const winPercentage = (wins + losses) > 0 ? Math.round((wins / (wins + losses)) * 100) : 0
@@ -258,6 +256,18 @@ export async function getRecommendations(
   const fillsData = await getFills(credentials)
   const tradedTickers = new Set(fillsData.fills.map(f => f.ticker))
 
+  // Build category win rate map from settlements
+  const settlementsData = await getSettlements(credentials)
+  const categoryStats = new Map<string, { wins: number; total: number }>()
+  for (const s of settlementsData.settlements) {
+    if (s.market_result === 'void') continue
+    const cat = await getMarketCategory(s.event_ticker)
+    const stats = categoryStats.get(cat) || { wins: 0, total: 0 }
+    stats.total++
+    if (s.revenue > (s.yes_total_cost + s.no_total_cost)) stats.wins++
+    categoryStats.set(cat, stats)
+  }
+
   // Get open markets
   const marketsData = await getMarkets({ status: 'open', limit: 100 })
 
@@ -265,69 +275,94 @@ export async function getRecommendations(
   const scoredMarkets: Array<{
     market: typeof marketsData.markets[0]
     score: number
-    reason: string
+    reasons: string[]
+    category: string
   }> = []
 
   for (const market of marketsData.markets) {
-    // Skip already traded
     if (tradedTickers.has(market.ticker)) continue
-
-    // Skip if no liquidity
     if (!market.yes_bid || !market.yes_ask) continue
 
     let score = 0
-    let reason = ''
-
-    // Price match based on risk profile
+    const reasons: string[] = []
     const midPrice = (market.yes_bid + market.yes_ask) / 2
 
+    // 1. Price match based on risk profile (30 pts)
     if (analysis.riskProfile.type === 'high_risk' && midPrice < 30) {
       score += 30
-      reason = 'Matches your high-risk style'
+      reasons.push('High-risk opportunity')
     } else if (analysis.riskProfile.type === 'conservative' && midPrice > 70) {
       score += 30
-      reason = 'Safe bet matching your style'
+      reasons.push('Conservative play')
     } else if (analysis.riskProfile.type === 'moderate' && midPrice >= 30 && midPrice <= 70) {
-      score += 30
-      reason = 'Balanced opportunity'
+      score += 25
+      reasons.push('Balanced odds')
     }
 
-    // Volume bonus
-    if (market.volume_24h > 1000) {
+    // 2. Volume & liquidity (20 pts)
+    const volume = market.volume_24h || 0
+    const oi = market.open_interest || 0
+    if (volume > 5000 || oi > 1000) {
       score += 20
-      if (!reason) reason = 'High trading activity'
+      reasons.push('High liquidity')
+    } else if (volume > 1000) {
+      score += 10
     }
 
-    // Category match (if we can determine it)
+    // 3. Category match with win rate weighting (35 pts)
+    let marketCategory = 'Unknown'
     try {
-      const category = await getMarketCategory(market.event_ticker)
-      const topCategories = analysis.categories.slice(0, 2).map(c => c.name.toLowerCase())
+      marketCategory = await getMarketCategory(market.event_ticker)
+      const topCategories = analysis.categories.slice(0, 3).map(c => c.name.toLowerCase())
 
-      if (topCategories.some(tc => category.toLowerCase().includes(tc))) {
-        score += 25
-        reason = `In your favorite category: ${category}`
+      if (topCategories.some(tc => marketCategory.toLowerCase().includes(tc))) {
+        const catStats = categoryStats.get(marketCategory)
+        const winRate = catStats && catStats.total > 0 ? catStats.wins / catStats.total : 0
+
+        if (winRate > 0.6) {
+          score += 35
+          reasons.push(`${Math.round(winRate * 100)}% win rate in ${marketCategory}`)
+        } else if (winRate > 0) {
+          score += 20
+          reasons.push(`Active in ${marketCategory}`)
+        } else {
+          score += 15
+          reasons.push(`Favorite sector: ${marketCategory}`)
+        }
       }
     } catch {
-      // Skip category matching if we can't fetch
+      // Skip
     }
 
     if (score > 0) {
-      scoredMarkets.push({ market, score, reason })
+      scoredMarkets.push({ market, score, reasons, category: marketCategory })
     }
   }
 
-  // Sort by score and take top 10
+  // Sort by score
   scoredMarkets.sort((a, b) => b.score - a.score)
 
-  return scoredMarkets.slice(0, 10).map(({ market, reason }) => ({
+  // Diversity: max 3 per category
+  const categoryCounts = new Map<string, number>()
+  const diverseResults: typeof scoredMarkets = []
+
+  for (const item of scoredMarkets) {
+    const count = categoryCounts.get(item.category) || 0
+    if (count >= 3) continue
+    categoryCounts.set(item.category, count + 1)
+    diverseResults.push(item)
+    if (diverseResults.length >= 10) break
+  }
+
+  return diverseResults.map(({ market, reasons, category }) => ({
     ticker: market.ticker,
     eventTicker: market.event_ticker,
     title: market.yes_sub_title || market.title || market.ticker,
-    category: 'Market', // Will be enriched later
+    category,
     yesBid: market.yes_bid_dollars || `$${(market.yes_bid / 100).toFixed(2)}`,
     yesAsk: market.yes_ask_dollars || `$${(market.yes_ask / 100).toFixed(2)}`,
     volume24h: market.volume_24h_fp || market.volume_24h?.toString() || '0',
-    reason,
+    reason: reasons.join(' · '),
     kalshiUrl: `https://demo.kalshi.co/markets/${market.event_ticker}`
   }))
 }

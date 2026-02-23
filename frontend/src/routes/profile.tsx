@@ -1,4 +1,5 @@
-import { useParams, useNavigate } from '@tanstack/react-router'
+import { useState } from 'react'
+import { useParams, useNavigate, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -9,6 +10,7 @@ import { getProfile, getRecommendations, type PersonalityAnalysis, type MarketRe
 export function ProfilePage() {
   const { profileId } = useParams({ from: '/profile/$profileId' })
   const navigate = useNavigate()
+  const [copied, setCopied] = useState(false)
 
   const profileQuery = useQuery({
     queryKey: ['profile', profileId],
@@ -25,6 +27,16 @@ export function ProfilePage() {
   const copyShareLink = () => {
     const url = window.location.href
     navigator.clipboard.writeText(url)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const shareOnTwitter = () => {
+    const analysis = profileQuery.data?.analysis
+    if (!analysis) return
+    const text = `I'm a "${analysis.tag.name} ${analysis.tag.emoji}" on Kalshi!\nWin rate: ${analysis.winRate.percentage}% | ROI: ${analysis.roi.percentage}%\n\nDiscover your trading personality:`
+    const url = window.location.href
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank')
   }
 
   if (profileQuery.isLoading) {
@@ -104,8 +116,16 @@ export function ProfilePage() {
           <div className="h-4 w-px bg-white/10 mx-2" />
           <span className="text-terminal-green text-xs font-bold tracking-[0.2em] hover-glitch cursor-default">KALSHI<span className="text-white/30">_OS</span></span>
         </div>
-        <div className="flex items-center gap-6 text-[10px] font-mono font-medium">
-          <span className="text-terminal-muted hidden md:inline-block">USER_ID: <span className="text-terminal-text">{profileId.slice(0, 8)}</span></span>
+        <div className="flex items-center gap-4 text-[10px] font-mono font-medium">
+          {/* Nav tabs */}
+          <nav className="flex gap-1 bg-black/30 rounded-lg p-0.5 border border-white/5">
+            <div className="px-3 py-1.5 text-[10px] uppercase tracking-wider font-bold text-terminal-green bg-terminal-green/10 rounded border border-terminal-green/20">
+              Scout
+            </div>
+            <Link to="/dashboard/$profileId" params={{ profileId }} className="px-3 py-1.5 text-[10px] uppercase tracking-wider font-bold text-terminal-muted hover:text-terminal-text transition-colors rounded">
+              Shield
+            </Link>
+          </nav>
           <Badge variant="outline" className="border-terminal-green/50 bg-terminal-green/5 text-terminal-green text-[9px] px-2 py-0.5 animate-pulse-green">
             ● LIVE_FEED
           </Badge>
@@ -117,7 +137,7 @@ export function ProfilePage() {
         {/* Personality Card - Hero Section */}
         {analysis && (
           <div className="opacity-0 animate-fade-in-up">
-            <PersonalityHero analysis={analysis} onShare={copyShareLink} />
+            <PersonalityHero analysis={analysis} onShare={copyShareLink} onTwitter={shareOnTwitter} copied={copied} />
           </div>
         )}
 
@@ -165,7 +185,7 @@ export function ProfilePage() {
   )
 }
 
-function PersonalityHero({ analysis, onShare }: { analysis: PersonalityAnalysis; onShare: () => void }) {
+function PersonalityHero({ analysis, onShare, onTwitter, copied }: { analysis: PersonalityAnalysis; onShare: () => void; onTwitter: () => void; copied: boolean }) {
   const getTagColor = (tag: string) => {
     if (tag.includes('Degen') || tag.includes('High')) return 'text-terminal-red shadow-red'
     if (tag.includes('Safe') || tag.includes('Conservative')) return 'text-terminal-green shadow-green'
@@ -202,18 +222,20 @@ function PersonalityHero({ analysis, onShare }: { analysis: PersonalityAnalysis;
           <div className="flex flex-col gap-3 min-w-[200px]">
             <Button
               onClick={onShare}
-              className="h-12 bg-white/5 hover:bg-terminal-cyan/10 text-terminal-cyan border border-terminal-cyan/30 hover:border-terminal-cyan transition-all uppercase tracking-wider text-xs font-bold"
+              className={`h-12 border transition-all uppercase tracking-wider text-xs font-bold ${
+                copied
+                  ? 'bg-terminal-green/20 text-terminal-green border-terminal-green/50'
+                  : 'bg-white/5 hover:bg-terminal-cyan/10 text-terminal-cyan border-terminal-cyan/30 hover:border-terminal-cyan'
+              }`}
             >
-              Copy Share Link
+              {copied ? 'Copied!' : 'Copy Share Link'}
             </Button>
-            <div className="grid grid-cols-2 gap-2">
-              <Button disabled className="h-10 bg-black/20 text-terminal-purple/40 border border-white/5 text-[10px] uppercase">
-                Mint NFT
-              </Button>
-              <Button disabled className="h-10 bg-black/20 text-terminal-orange/40 border border-white/5 text-[10px] uppercase">
-                Json Export
-              </Button>
-            </div>
+            <Button
+              onClick={onTwitter}
+              className="h-10 bg-white/5 hover:bg-[#1DA1F2]/10 text-[#1DA1F2] border border-[#1DA1F2]/30 hover:border-[#1DA1F2] text-[10px] uppercase font-bold tracking-wider transition-all"
+            >
+              Share on X / Twitter
+            </Button>
           </div>
         </div>
 

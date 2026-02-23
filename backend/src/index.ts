@@ -4,6 +4,7 @@ import { logger } from 'hono/logger'
 import { connectRoute } from './routes/connect'
 import { profileRoute } from './routes/profile'
 import { recommendRoute } from './routes/recommend'
+import { dashboardRoute } from './routes/dashboard'
 import { initDB } from './db'
 
 const app = new Hono()
@@ -22,6 +23,7 @@ app.get('/', (c) => c.json({ status: 'ok', service: 'kalshi-personality-api' }))
 app.route('/api/connect', connectRoute)
 app.route('/api/profile', profileRoute)
 app.route('/api/recommend', recommendRoute)
+app.route('/api/dashboard', dashboardRoute)
 
 // Initialize DB and start server
 initDB()
