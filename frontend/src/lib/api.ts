@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:3000/api'
+const API_BASE = 'http://localhost:3003/api'
 
 export interface PersonalityAnalysis {
   categories: {
@@ -68,6 +68,7 @@ export async function getProfile(profileId: string): Promise<{
   analysis: PersonalityAnalysis
   cached: boolean
   isOwner: boolean
+  source?: 'live' | 'cached' | 'social'
 }> {
   const response = await fetch(`${API_BASE}/profile/${profileId}`)
 
@@ -114,6 +115,7 @@ export async function getRecommendations(profileId: string): Promise<{
 export interface SearchResult {
   username: string
   profileId: string
+  source?: 'local' | 'kalshi'
 }
 
 export async function searchProfiles(query: string): Promise<{
@@ -125,6 +127,21 @@ export async function searchProfiles(query: string): Promise<{
   if (!response.ok) {
     const error = await response.json()
     throw new Error(error.error || 'Search failed')
+  }
+
+  return response.json()
+}
+
+export async function setUsername(profileId: string, username: string): Promise<{ success: boolean; username: string }> {
+  const response = await fetch(`${API_BASE}/profile/${profileId}/username`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username }),
+  })
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'Failed to set username')
   }
 
   return response.json()
@@ -249,6 +266,25 @@ export async function executeHedge(profileId: string, params: {
   if (!response.ok) {
     const error = await response.json()
     throw new Error(error.error || 'Failed to execute hedge')
+  }
+  return response.json()
+}
+
+// Execute order from recommendation
+export async function executeRecommendOrder(profileId: string, params: {
+  ticker: string
+  side: 'yes' | 'no'
+  count: number
+  price: number
+}): Promise<{ success: boolean; order: { orderId: string; ticker: string; status: string; side: string; count: number; price: number } }> {
+  const response = await fetch(`${API_BASE}/recommend/order/${profileId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  })
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'Failed to execute order')
   }
   return response.json()
 }

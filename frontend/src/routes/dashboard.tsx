@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { UserSidebar } from '@/components/user-sidebar'
-import { Target, PieChart, Wallet, Activity } from 'lucide-react'
 import {
   getPortfolioRisk, getBalance, calculateHedge, executeHedge,
   type PortfolioRisk, type PositionData, type HedgeCalculation, type OrderbookAnalysis, type BalanceData
@@ -97,6 +96,7 @@ export function DashboardPage() {
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         username={username}
+        isOwner={true}
         balanceDollars={balanceQuery.data?.balanceDollars}
       />
 
@@ -171,25 +171,25 @@ function PortfolioOverview({ risk, balance }: { risk: PortfolioRisk; balance?: B
         label="TOTAL EXPOSURE"
         value={`$${(risk.totalExposure / 100).toFixed(2)}`}
         color="cyan"
-        icon={<Target className="w-4 h-4 text-terminal-cyan" />}
+        icon={<img src="/icons/scout_icon_v2_1771836226427.png" alt="Exposure" className="w-5 h-5 mix-blend-screen opacity-90 object-cover scale-150 drop-shadow-[0_0_8px_rgba(0,240,255,0.8)]" />}
       />
       <OverviewStat
         label="POSITIONS"
         value={risk.positions.length.toString()}
         color="blue"
-        icon={<PieChart className="w-4 h-4 text-terminal-blue" />}
+        icon={<img src="/icons/wallet_icon_v2_1771836274046.png" alt="PnL" className="w-5 h-5 mix-blend-screen opacity-90 object-cover scale-[1.7] drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]" />}
       />
       <OverviewStat
         label="DIRECTION BIAS"
         value={`${risk.directionBias.yes}% YES`}
         color={risk.directionBias.yes > 70 ? 'yellow' : 'green'}
-        icon={<Activity className="w-4 h-4 text-terminal-green" />}
+        icon={<img src="/icons/activity_icon_v2_1771836248302.png" alt="Active Markets" className="w-5 h-5 mix-blend-screen opacity-90 object-cover scale-[1.7] drop-shadow-[0_0_8px_rgba(0,255,157,0.8)]" />}
       />
       <OverviewStat
         label="AVAILABLE"
         value={balance ? `$${balance.balanceDollars}` : '...'}
         color="green"
-        icon={<Wallet className="w-4 h-4 text-terminal-green" />}
+        icon={<img src="/icons/shield_icon_v2_1771836304980.png" alt="Liquidity" className="w-5 h-5 mix-blend-screen opacity-90 object-cover scale-150 drop-shadow-[0_0_8px_rgba(0,255,157,0.8)]" />}
       />
     </div>
   )
@@ -211,7 +211,7 @@ function OverviewStat({ label, value, color, icon }: { label: string; value: str
         <div className="text-zinc-500 text-[10px] uppercase tracking-widest group-hover:text-current transition-colors">{label}</div>
         {icon && <div className="opacity-50 group-hover:opacity-100 transition-opacity bg-black/40 p-1.5 rounded-md border border-white/5">{icon}</div>}
       </div>
-      <div className="text-2xl font-black font-mono relative z-10 drop-shadow-md text-white">{value}</div>
+      <div className="text-2xl font-black font-mono relative z-10 drop-shadow-[0_0_12px_currentColor] text-current">{value}</div>
     </div>
   )
 }

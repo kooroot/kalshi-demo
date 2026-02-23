@@ -31,8 +31,8 @@ app.route('/api/search', searchRoute)
 initDB()
 
 export default {
-  port: 3000,
+  port: 3003,
   fetch: app.fetch,
 }
 
-console.log('🚀 Server running at http://localhost:3000')
+console.log('🚀 Server running at http://localhost:3003')

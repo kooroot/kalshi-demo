@@ -1,21 +1,64 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Input } from '@/components/ui/input'
-import { searchProfiles, type SearchResult } from '@/lib/api'
+import { searchProfiles, setUsername, type SearchResult } from '@/lib/api'
 
 interface UserSidebarProps {
   open: boolean
   onClose: () => void
   username: string
+  profileId?: string
+  isOwner?: boolean
   balanceDollars?: string
+  onUsernameSet?: (newUsername: string) => void
 }
 
-export function UserSidebar({ open, onClose, username, balanceDollars }: UserSidebarProps) {
+export function UserSidebar({ open, onClose, username, profileId, isOwner, balanceDollars, onUsernameSet }: UserSidebarProps) {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [searching, setSearching] = useState(false)
   const [notFound, setNotFound] = useState(false)
+
+  // Username setup state
+  const isUUID = /^[a-f0-9-]{36}$/i.test(username)
+  const needsUsername = isOwner && isUUID
+  const [profileUrlInput, setProfileUrlInput] = useState('')
+  const [settingUsername, setSettingUsername] = useState(false)
+  const [usernameError, setUsernameError] = useState('')
+
+  const parseUsernameFromUrl = (input: string): string | null => {
+    const trimmed = input.trim()
+    if (!trimmed) return null
+    // Extract from URL like https://demo.kalshi.co/ideas/profiles/kooroot
+    const match = trimmed.match(/\/profiles\/([a-zA-Z0-9_-]+)\/?$/)
+    if (match) return match[1]
+    // Plain username
+    if (/^[a-zA-Z0-9_-]{2,30}$/.test(trimmed)) return trimmed
+    return null
+  }
+
+  const handleSetUsername = async () => {
+    const parsed = parseUsernameFromUrl(profileUrlInput)
+    if (!parsed) {
+      setUsernameError('Invalid URL or username')
+      return
+    }
+    if (!profileId) return
+
+    setSettingUsername(true)
+    setUsernameError('')
+    try {
+      await setUsername(profileId, parsed)
+      onUsernameSet?.(parsed)
+      onClose()
+      navigate({ to: '/scout/$username', params: { username: parsed } })
+    } catch (e) {
+      setUsernameError(e instanceof Error ? e.message : 'Failed to set username')
+    } finally {
+      setSettingUsername(false)
+    }
+  }
 
   const handleSearch = async () => {
     if (!query.trim() || query.trim().length < 2) return
@@ -58,9 +101,8 @@ export function UserSidebar({ open, onClose, username, balanceDollars }: UserSid
 
       {/* Sidebar */}
       <div
-        className={`fixed top-0 right-0 h-full w-80 bg-terminal-bg/95 backdrop-blur-xl border-l border-terminal-border z-[70] shadow-2xl shadow-black/50 transition-transform duration-300 ease-out flex flex-col ${
-          open ? 'translate-x-0' : 'translate-x-full'
-        }`}
+        className={`fixed top-0 right-0 h-full w-80 bg-terminal-bg/95 backdrop-blur-xl border-l border-terminal-border z-[70] shadow-2xl shadow-black/50 transition-transform duration-300 ease-out flex flex-col ${open ? 'translate-x-0' : 'translate-x-full'
+          }`}
       >
         {/* Header */}
         <div className="p-5 border-b border-white/5">
@@ -81,7 +123,9 @@ export function UserSidebar({ open, onClose, username, balanceDollars }: UserSid
               <span className="text-terminal-green text-sm font-black">{username[0]?.toUpperCase()}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-terminal-text text-sm font-bold tracking-wider truncate">{username}</div>
+              <div className="text-terminal-text text-sm font-bold tracking-wider truncate">
+                {isUUID ? `${username.slice(0, 8)}...` : username}
+              </div>
               {balanceDollars && (
                 <div className="text-terminal-green text-xs font-mono">${balanceDollars}</div>
               )}
@@ -89,6 +133,36 @@ export function UserSidebar({ open, onClose, username, balanceDollars }: UserSid
             <div className="w-2 h-2 rounded-full bg-terminal-green shadow-[0_0_8px_rgba(0,255,157,0.6)]" />
           </div>
         </div>
+
+        {/* Set Username (shown when username is UUID) */}
+        {needsUsername && (
+          <div className="p-5 border-b border-white/5 space-y-3">
+            <div className="text-[10px] text-terminal-yellow font-mono uppercase tracking-widest flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-terminal-yellow animate-pulse" />
+              Set Username
+            </div>
+            <div className="text-terminal-dim text-[11px] font-mono leading-relaxed">
+              Paste your Kalshi profile URL to enable search.
+            </div>
+            <Input
+              placeholder="https://kalshi.co/ideas/profiles/..."
+              value={profileUrlInput}
+              onChange={(e) => { setProfileUrlInput(e.target.value); setUsernameError('') }}
+              onKeyDown={(e) => e.key === 'Enter' && handleSetUsername()}
+              className="h-9 bg-black/60 border-terminal-yellow/30 text-white placeholder:text-zinc-600 focus:border-terminal-yellow focus:ring-1 focus:ring-terminal-yellow/50 rounded font-mono text-xs tracking-wider"
+            />
+            <button
+              onClick={handleSetUsername}
+              disabled={!profileUrlInput.trim() || settingUsername}
+              className="w-full h-8 rounded border border-terminal-yellow/40 bg-terminal-yellow/10 text-terminal-yellow text-[10px] font-bold uppercase tracking-wider hover:bg-terminal-yellow/20 transition-colors disabled:opacity-30"
+            >
+              {settingUsername ? '...' : 'SET USERNAME'}
+            </button>
+            {usernameError && (
+              <div className="text-terminal-red text-[10px] font-mono">{usernameError}</div>
+            )}
+          </div>
+        )}
 
         {/* Search */}
         <div className="p-5 border-b border-white/5 space-y-3">
@@ -117,19 +191,28 @@ export function UserSidebar({ open, onClose, username, balanceDollars }: UserSid
           {/* Results */}
           {results.length > 0 && (
             <div className="space-y-1 max-h-48 overflow-y-auto">
-              {results.map((r) => (
+              {results.map((r, i) => (
                 <button
-                  key={r.profileId}
+                  key={r.profileId || `kalshi-${i}`}
                   onClick={() => goToProfile(r.username)}
                   className="w-full text-left px-3 py-2.5 bg-black/30 hover:bg-terminal-purple/10 border border-white/5 hover:border-terminal-purple/30 rounded transition-all flex items-center gap-2.5 group"
                 >
-                  <div className="w-6 h-6 rounded bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-terminal-dim group-hover:text-terminal-purple font-bold transition-colors">
+                  <div className={`w-6 h-6 rounded border flex items-center justify-center text-[10px] font-bold transition-colors ${
+                    r.source === 'kalshi'
+                      ? 'bg-terminal-green/10 border-terminal-green/30 text-terminal-green group-hover:text-terminal-green'
+                      : 'bg-white/5 border-white/10 text-terminal-dim group-hover:text-terminal-purple'
+                  }`}>
                     {r.username[0]?.toUpperCase()}
                   </div>
-                  <span className="font-mono text-xs text-terminal-text group-hover:text-white transition-colors flex-1 truncate">
-                    {r.username}
-                  </span>
-                  <svg className="w-3 h-3 text-terminal-dim opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className="flex-1 min-w-0">
+                    <span className="font-mono text-xs text-terminal-text group-hover:text-white transition-colors truncate block">
+                      {r.username}
+                    </span>
+                    {r.source === 'kalshi' && (
+                      <span className="text-[9px] text-terminal-green/70 font-mono">Kalshi Public Profile</span>
+                    )}
+                  </div>
+                  <svg className="w-3 h-3 text-terminal-dim opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </button>

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { connectKalshi, searchProfiles, type SearchResult } from "@/lib/api";
-import { Shield, Key, FileKey, Activity, Terminal, ArrowRight, UploadCloud, Search, User } from "lucide-react";
+import { Key, FileKey, Terminal, ArrowRight, UploadCloud, Search, User } from "lucide-react";
 
 export function LandingPage() {
   const navigate = useNavigate();
@@ -381,8 +381,8 @@ export function LandingPage() {
             <div className="border border-terminal-green/30 bg-black/80 backdrop-blur-md p-5 rounded-lg relative overflow-hidden group hover:border-terminal-green/60 transition-colors shadow-lg shadow-black/50 hover:shadow-terminal-green/10">
               <div className="absolute -top-10 -right-10 w-32 h-32 bg-terminal-green/10 rounded-full blur-3xl group-hover:bg-terminal-green/20 transition-all duration-700" />
               <div className="flex items-start gap-4 mb-3 relative z-10">
-                <div className="p-2.5 bg-terminal-green/10 rounded-md border border-terminal-green/20">
-                  <Activity className="w-5 h-5 text-terminal-green" />
+                <div className="w-10 h-10 p-0 rounded border border-terminal-green/30 overflow-hidden flex items-center justify-center bg-black/60">
+                  <img src="/icons/activity_icon_v2_1771836248302.png" alt="Activity Scanner" className="w-24 h-24 object-cover scale-150 mix-blend-screen" />
                 </div>
                 <div>
                   <h3 className="text-white font-bold text-sm tracking-widest uppercase flex items-center gap-2">
@@ -400,8 +400,8 @@ export function LandingPage() {
             <div className="border border-terminal-blue/30 bg-black/80 backdrop-blur-md p-5 rounded-lg relative overflow-hidden group hover:border-terminal-blue/60 transition-colors shadow-lg shadow-black/50 hover:shadow-terminal-blue/10">
               <div className="absolute -top-10 -right-10 w-32 h-32 bg-terminal-blue/10 rounded-full blur-3xl group-hover:bg-terminal-blue/20 transition-all duration-700" />
               <div className="flex items-start gap-4 mb-3 relative z-10">
-                <div className="p-2.5 bg-terminal-blue/10 rounded-md border border-terminal-blue/20">
-                  <Shield className="w-5 h-5 text-terminal-blue" />
+                <div className="w-10 h-10 p-0 rounded border border-terminal-blue/30 overflow-hidden flex items-center justify-center bg-black/60">
+                  <img src="/icons/shield_icon_v2_1771836304980.png" alt="Shield Monitor" className="w-24 h-24 object-cover scale-125 mix-blend-screen" />
                 </div>
                 <div>
                   <h3 className="text-white font-bold text-sm tracking-widest uppercase flex items-center gap-2">

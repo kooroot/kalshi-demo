@@ -1,5 +1,6 @@
 import type { PersonalityAnalysis, KalshiCredentials, MarketRecommendation } from '../types'
 import { getFills, getSettlements, getMarkets, getEvent, getSeries } from './kalshi'
+import { getSocialMetrics, getSocialTrades, getSocialHoldings, getSocialCategoryMetrics } from './kalshi-social'
 
 interface FillData {
   ticker: string
@@ -248,6 +249,118 @@ export async function analyzePersonality(credentials: KalshiCredentials): Promis
   }
 }
 
+export async function analyzeFromSocial(nickname: string): Promise<PersonalityAnalysis> {
+  // Fetch all social data in parallel
+  const [metrics, trades, closedHoldings, categoryMetrics] = await Promise.all([
+    getSocialMetrics(nickname),
+    getSocialTrades(nickname),
+    getSocialHoldings(nickname, true),
+    getSocialCategoryMetrics(nickname),
+  ])
+
+  // 1. Category distribution from category metrics
+  const totalCategoryValue = categoryMetrics.reduce((sum, cm) => sum + Math.abs(cm.value), 0)
+  const categories = categoryMetrics
+    .map(cm => ({
+      name: cm.category || cm.tag || 'Unknown',
+      count: Math.abs(cm.value),
+      percentage: totalCategoryValue > 0 ? Math.round((Math.abs(cm.value) / totalCategoryValue) * 100) : 0,
+    }))
+    .filter(c => c.percentage > 0)
+    .sort((a, b) => b.count - a.count)
+
+  // 2. Risk profile from trade prices
+  let lowRiskCount = 0
+  let midRiskCount = 0
+  let highRiskCount = 0
+  let totalPrice = 0
+
+  for (const trade of trades) {
+    const price = trade.price // already 0-100 range (cents)
+    totalPrice += price
+
+    if (price < 30) highRiskCount++
+    else if (price > 70) lowRiskCount++
+    else midRiskCount++
+  }
+
+  const avgEntryPrice = trades.length > 0 ? Math.round(totalPrice / trades.length) : 50
+  let riskType: 'high_risk' | 'moderate' | 'conservative' = 'moderate'
+
+  if (highRiskCount > lowRiskCount && highRiskCount > midRiskCount) {
+    riskType = 'high_risk'
+  } else if (lowRiskCount > highRiskCount && lowRiskCount > midRiskCount) {
+    riskType = 'conservative'
+  }
+
+  // 3. Win rate from closed holdings (nested: event → market_holdings[])
+  let wins = 0
+  let losses = 0
+
+  for (const holding of closedHoldings) {
+    for (const mh of holding.market_holdings) {
+      if (mh.pnl > 0) wins++
+      else if (mh.pnl < 0) losses++
+    }
+  }
+
+  const winPercentage = (wins + losses) > 0 ? Math.round((wins / (wins + losses)) * 100) : 0
+
+  // 4. ROI from metrics
+  // pnl is in cents, volume is contract count
+  // Estimate total cost from trades: sum(price * count) for each trade
+  let estimatedTotalCost = 0
+  for (const trade of trades) {
+    estimatedTotalCost += trade.price * trade.count
+  }
+  const pnl = metrics.pnl || 0 // cents
+  const totalCostCents = estimatedTotalCost || 1
+  const roiPercentage = totalCostCents > 0 ? Math.round((pnl / totalCostCents) * 100) : 0
+
+  // 5. Trading frequency from trades
+  const tradeDates = new Set<string>()
+  for (const trade of trades) {
+    if (trade.create_date) {
+      const date = trade.create_date.split('T')[0]
+      tradeDates.add(date)
+    }
+  }
+
+  const activeDays = tradeDates.size || 1
+  const totalTrades = trades.length
+  const tradesPerDay = Math.round((totalTrades / activeDays) * 10) / 10
+
+  const partialAnalysis = {
+    categories,
+    riskProfile: {
+      type: riskType,
+      avgEntryPrice,
+      lowRiskCount,
+      midRiskCount,
+      highRiskCount,
+    },
+    winRate: {
+      wins,
+      losses,
+      percentage: winPercentage,
+    },
+    roi: {
+      totalRevenue: totalCostCents + pnl,
+      totalCost: totalCostCents,
+      percentage: roiPercentage,
+    },
+    frequency: {
+      totalTrades,
+      activeDays,
+      tradesPerDay,
+    },
+  }
+
+  const tag = determinePersonalityTag(partialAnalysis)
+
+  return { ...partialAnalysis, tag }
+}
+
 export async function getRecommendations(
   credentials: KalshiCredentials,
   analysis: PersonalityAnalysis
@@ -354,15 +467,36 @@ export async function getRecommendations(
     if (diverseResults.length >= 10) break
   }
 
-  return diverseResults.map(({ market, reasons, category }) => ({
-    ticker: market.ticker,
-    eventTicker: market.event_ticker,
-    title: market.yes_sub_title || market.title || market.ticker,
-    category,
-    yesBid: market.yes_bid_dollars || `$${(market.yes_bid / 100).toFixed(2)}`,
-    yesAsk: market.yes_ask_dollars || `$${(market.yes_ask / 100).toFixed(2)}`,
-    volume24h: market.volume_24h_fp || market.volume_24h?.toString() || '0',
-    reason: reasons.join(' · '),
-    kalshiUrl: `https://demo.kalshi.co/markets/${market.event_ticker}`
-  }))
+  // Resolve proper event titles for recommendations
+  const results: MarketRecommendation[] = []
+  for (const { market, reasons, category } of diverseResults) {
+    let title = market.title || market.yes_sub_title || market.ticker
+    // Try to get a better title from event data
+    try {
+      const eventData = await getEvent(market.event_ticker)
+      const eventTitle = eventData.event.title
+      // Use event title + market subtitle for clarity
+      if (eventTitle && market.yes_sub_title && market.yes_sub_title !== eventTitle) {
+        title = `${eventTitle}: ${market.yes_sub_title}`
+      } else if (eventTitle) {
+        title = eventTitle
+      }
+    } catch {
+      // Keep existing title
+    }
+
+    results.push({
+      ticker: market.ticker,
+      eventTicker: market.event_ticker,
+      title,
+      category,
+      yesBid: market.yes_bid_dollars || `$${(market.yes_bid / 100).toFixed(2)}`,
+      yesAsk: market.yes_ask_dollars || `$${(market.yes_ask / 100).toFixed(2)}`,
+      volume24h: market.volume_24h_fp || market.volume_24h?.toString() || '0',
+      reason: reasons.join(' · '),
+      kalshiUrl: `https://demo.kalshi.co/markets/${market.event_ticker}`,
+    })
+  }
+
+  return results
 }

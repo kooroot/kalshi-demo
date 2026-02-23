@@ -4,9 +4,9 @@ import { useQuery } from '@tanstack/react-query'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { getProfile, getRecommendations, getBalance, type PersonalityAnalysis, type MarketRecommendation } from '@/lib/api'
+import { getProfile, getRecommendations, getBalance, executeRecommendOrder, type PersonalityAnalysis, type MarketRecommendation } from '@/lib/api'
 import { UserSidebar } from '@/components/user-sidebar'
-import { Trophy, TrendingUp, Activity, Zap, Target, ArrowUpRight, ArrowDownRight } from 'lucide-react'
+import { Activity, ArrowUpRight, ArrowDownRight, Trophy } from 'lucide-react'
 export function ProfilePage() {
   const { username } = useParams({ from: '/scout/$username' })
   const navigate = useNavigate()
@@ -194,24 +194,35 @@ export function ProfilePage() {
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         username={profileQuery.data?.username || username}
+        profileId={profileQuery.data?.profileId}
+        isOwner={isOwner}
         balanceDollars={balanceQuery.data?.balanceDollars}
+        onUsernameSet={() => profileQuery.refetch()}
       />
 
       <main className="pt-24 pb-12 px-4 md:px-6 max-w-7xl mx-auto space-y-8">
 
         {/* Public view banner */}
         {!isOwner && (
-          <div className="bg-terminal-purple/5 border border-terminal-purple/30 rounded-lg p-4 flex items-center justify-between opacity-0 animate-fade-in-up">
+          <div className={`${profileQuery.data?.source === 'social' ? 'bg-terminal-green/5 border-terminal-green/30' : 'bg-terminal-purple/5 border-terminal-purple/30'} border rounded-lg p-4 flex items-center justify-between opacity-0 animate-fade-in-up`}>
             <div className="flex items-center gap-3">
-              <span className="text-terminal-purple text-lg">i</span>
+              <span className={`${profileQuery.data?.source === 'social' ? 'text-terminal-green' : 'text-terminal-purple'} text-lg`}>
+                {profileQuery.data?.source === 'social' ? 'K' : 'i'}
+              </span>
               <div>
-                <div className="text-terminal-text text-sm font-bold tracking-wider">PUBLIC PROFILE</div>
-                <div className="text-terminal-muted text-xs font-mono">Viewing cached analysis. Connect your account for live data and recommendations.</div>
+                <div className="text-terminal-text text-sm font-bold tracking-wider">
+                  {profileQuery.data?.source === 'social' ? 'KALSHI PUBLIC DATA' : 'PUBLIC PROFILE'}
+                </div>
+                <div className="text-terminal-muted text-xs font-mono">
+                  {profileQuery.data?.source === 'social'
+                    ? 'Analyzed from public Kalshi trading data. Connect your account for live data and recommendations.'
+                    : 'Viewing cached analysis. Connect your account for live data and recommendations.'}
+                </div>
               </div>
             </div>
             <Button
               onClick={() => navigate({ to: '/' })}
-              className="bg-terminal-purple/10 hover:bg-terminal-purple/20 text-terminal-purple border border-terminal-purple/30 text-xs uppercase tracking-wider font-bold"
+              className={`${profileQuery.data?.source === 'social' ? 'bg-terminal-green/10 hover:bg-terminal-green/20 text-terminal-green border-terminal-green/30' : 'bg-terminal-purple/10 hover:bg-terminal-purple/20 text-terminal-purple border-terminal-purple/30'} text-xs uppercase tracking-wider font-bold`}
             >
               Connect
             </Button>
@@ -259,7 +270,7 @@ export function ProfilePage() {
                 <span className="text-terminal-red">Failed to load recommendations</span>
               </div>
             ) : recommendQuery.data?.recommendations ? (
-              <RecommendationsGrid recommendations={recommendQuery.data.recommendations} />
+              <RecommendationsGrid recommendations={recommendQuery.data.recommendations} profileId={profileQuery.data?.profileId || username} isOwner={isOwner} />
             ) : null}
           </div>
         )}
@@ -331,26 +342,26 @@ function PersonalityHero({ analysis, onShare, onTwitter, copied }: { analysis: P
             value={`${analysis.winRate.percentage}%`}
             color={analysis.winRate.percentage >= 50 ? 'green' : 'red'}
             trend={analysis.winRate.percentage >= 50 ? 'up' : 'down'}
-            icon={<Trophy className="w-5 h-5" />}
+            icon={<img src="/icons/activity_icon_v2_1771836248302.png" alt="Win Ratio" className="w-6 h-6 mix-blend-screen object-cover scale-[1.6]" />}
           />
           <StatBlock
             label="NET ROI"
             value={`${analysis.roi.percentage >= 0 ? '+' : ''}${analysis.roi.percentage}%`}
             color={analysis.roi.percentage >= 0 ? 'green' : 'red'}
             trend={analysis.roi.percentage >= 0 ? 'up-right' : 'down-right'}
-            icon={<TrendingUp className="w-5 h-5" />}
+            icon={<img src="/icons/wallet_icon_v2_1771836274046.png" alt="ROI" className="w-6 h-6 mix-blend-screen object-cover scale-[1.6]" />}
           />
           <StatBlock
             label="TOTAL EXECUTION"
             value={analysis.frequency.totalTrades.toString()}
             color="blue"
-            icon={<Target className="w-5 h-5" />}
+            icon={<img src="/icons/scout_icon_v2_1771836226427.png" alt="Execution" className="w-6 h-6 mix-blend-screen object-cover scale-[1.6]" />}
           />
           <StatBlock
             label="VELOCITY (DAY)"
             value={analysis.frequency.tradesPerDay.toString()}
             color="cyan"
-            icon={<Zap className="w-5 h-5" />}
+            icon={<img src="/icons/activity_icon_v2_1771836248302.png" alt="Velocity" className="w-6 h-6 mix-blend-screen object-cover scale-[1.6]" />}
           />
         </div>
       </div>
@@ -371,10 +382,10 @@ function StatBlock({ label, value, color, trend, icon }: { label: string; value:
   }
 
   const trendIcons: Record<string, React.ReactNode> = {
-    'up': <ArrowUpRight className="w-4 h-4 opacity-70" />,
-    'down': <ArrowDownRight className="w-4 h-4 opacity-70" />,
-    'up-right': <ArrowUpRight className="w-4 h-4 opacity-70" />,
-    'down-right': <ArrowDownRight className="w-4 h-4 opacity-70" />,
+    'up': <ArrowUpRight className="w-4 h-4 opacity-100" strokeWidth={3} />,
+    'down': <ArrowDownRight className="w-4 h-4 opacity-100" strokeWidth={3} />,
+    'up-right': <ArrowUpRight className="w-4 h-4 opacity-100" strokeWidth={3} />,
+    'down-right': <ArrowDownRight className="w-4 h-4 opacity-100" strokeWidth={3} />,
   }
 
   return (
@@ -386,7 +397,7 @@ function StatBlock({ label, value, color, trend, icon }: { label: string; value:
         {icon && <div className="opacity-50 group-hover:opacity-100 transition-opacity bg-black/40 p-1.5 rounded-md border border-white/5">{icon}</div>}
       </div>
 
-      <div className="text-2xl md:text-3xl font-black font-mono relative z-10 drop-shadow-md text-white flex items-center gap-2">
+      <div className="text-2xl md:text-3xl font-black font-mono relative z-10 drop-shadow-[0_0_12px_currentColor] text-current flex items-center gap-2">
         {value}
         {trend && trendIcons[trend]}
       </div>
@@ -526,7 +537,7 @@ function PerformancePanel({ winRate, roi }: { winRate: PersonalityAnalysis['winR
   )
 }
 
-function RecommendationsGrid({ recommendations }: { recommendations: MarketRecommendation[] }) {
+function RecommendationsGrid({ recommendations, profileId, isOwner }: { recommendations: MarketRecommendation[]; profileId: string; isOwner: boolean }) {
   if (recommendations.length === 0) {
     return (
       <div className="terminal-glass-panel p-8 text-center rounded-xl">
@@ -538,30 +549,62 @@ function RecommendationsGrid({ recommendations }: { recommendations: MarketRecom
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {recommendations.map((rec, i) => (
-        <MarketCard key={rec.ticker} recommendation={rec} index={i} />
+        <MarketCard key={rec.ticker} recommendation={rec} index={i} profileId={profileId} isOwner={isOwner} />
       ))}
     </div>
   )
 }
 
-function MarketCard({ recommendation, index }: { recommendation: MarketRecommendation; index: number }) {
+function MarketCard({ recommendation, index, profileId, isOwner }: { recommendation: MarketRecommendation; index: number; profileId: string; isOwner: boolean }) {
+  const [orderMode, setOrderMode] = useState(false)
+  const [orderSide, setOrderSide] = useState<'yes' | 'no'>('yes')
+  const [orderCount, setOrderCount] = useState(1)
+  const [ordering, setOrdering] = useState(false)
+  const [orderResult, setOrderResult] = useState<{ success: boolean; message: string } | null>(null)
+
   const price = parseFloat(recommendation.yesBid.replace('$', '')) || 0
+  const priceCents = Math.round(price * 100)
   const priceColor = price < 0.3 ? 'text-terminal-red shadow-red' : price > 0.7 ? 'text-terminal-green shadow-green' : 'text-terminal-yellow shadow-yellow'
   const accentColor = price < 0.3 ? 'border-terminal-red/30' : price > 0.7 ? 'border-terminal-green/30' : 'border-terminal-yellow/30'
+
+  const yesAskPrice = parseFloat(recommendation.yesAsk.replace('$', '')) || 0
+  const yesAskCents = Math.round(yesAskPrice * 100)
+  const noAskCents = 100 - priceCents // NO ask = 100 - YES bid
+
+  const selectedPrice = orderSide === 'yes' ? yesAskCents : noAskCents
+  const totalCost = (selectedPrice * orderCount / 100).toFixed(2)
+
+  const handleOrder = async () => {
+    setOrdering(true)
+    setOrderResult(null)
+    try {
+      const result = await executeRecommendOrder(profileId, {
+        ticker: recommendation.ticker,
+        side: orderSide,
+        count: orderCount,
+        price: selectedPrice,
+      })
+      setOrderResult({ success: true, message: `Order placed! ${result.order.count}x ${result.order.side.toUpperCase()} @ ${result.order.price}c` })
+      setTimeout(() => { setOrderMode(false); setOrderResult(null) }, 3000)
+    } catch (e) {
+      setOrderResult({ success: false, message: e instanceof Error ? e.message : 'Order failed' })
+    } finally {
+      setOrdering(false)
+    }
+  }
 
   return (
     <div
       className="terminal-glass-panel p-5 rounded-lg border border-white/5 hover:border-terminal-border-bright transition-all duration-300 opacity-0 animate-fade-in-up hover:-translate-y-1 hover:shadow-2xl group relative overflow-hidden"
       style={{ animationDelay: `${index * 0.05}s` }}
     >
-      {/* Hover gradient effect */}
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
 
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-4 relative z-10">
         <div className="flex-1 min-w-0">
           <Badge variant="outline" className="mb-2 text-[9px] border-terminal-muted/30 text-terminal-muted bg-white/5">
-            {recommendation.ticker}
+            {recommendation.category || recommendation.ticker}
           </Badge>
           <h3 className="text-xs font-semibold text-terminal-text leading-tight line-clamp-2 group-hover:text-white transition-colors">
             {recommendation.title}
@@ -575,26 +618,106 @@ function MarketCard({ recommendation, index }: { recommendation: MarketRecommend
         </div>
       </div>
 
-      {/* Logic/Reason */}
-      <div className="mb-5 relative z-10">
+      {/* Reason */}
+      <div className="mb-4 relative z-10">
         <div className={`text-[10px] p-2 rounded bg-black/30 border ${accentColor} text-terminal-text/80 leading-relaxed font-mono`}>
           "{recommendation.reason}"
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex gap-2 relative z-10">
-        <a
-          href={recommendation.kalshiUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex-1"
-        >
-          <Button className="w-full h-8 bg-terminal-text/5 hover:bg-terminal-green/20 text-terminal-text hover:text-terminal-green border border-terminal-text/10 hover:border-terminal-green/50 text-[10px] uppercase font-bold tracking-wider transition-all">
-            Trade on Kalshi
-          </Button>
-        </a>
-      </div>
+      {/* Order Panel */}
+      {orderMode ? (
+        <div className="relative z-10 space-y-3">
+          {/* Side toggle */}
+          <div className="flex gap-1">
+            <button
+              onClick={() => setOrderSide('yes')}
+              className={`flex-1 h-8 rounded text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                orderSide === 'yes'
+                  ? 'bg-terminal-green/20 text-terminal-green border-terminal-green/50 shadow-[0_0_10px_rgba(0,255,157,0.15)]'
+                  : 'bg-black/30 text-terminal-dim border-white/10 hover:border-white/20'
+              }`}
+            >
+              Buy YES
+            </button>
+            <button
+              onClick={() => setOrderSide('no')}
+              className={`flex-1 h-8 rounded text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                orderSide === 'no'
+                  ? 'bg-terminal-red/20 text-terminal-red border-terminal-red/50 shadow-[0_0_10px_rgba(248,81,73,0.15)]'
+                  : 'bg-black/30 text-terminal-dim border-white/10 hover:border-white/20'
+              }`}
+            >
+              Buy NO
+            </button>
+          </div>
+
+          {/* Quantity + Price */}
+          <div className="flex gap-2 items-center">
+            <div className="flex items-center gap-1 bg-black/60 rounded border border-white/10 px-2 h-8">
+              <button onClick={() => setOrderCount(Math.max(1, orderCount - 1))} className="text-terminal-dim hover:text-white text-xs px-1">-</button>
+              <span className="text-white text-xs font-mono w-6 text-center">{orderCount}</span>
+              <button onClick={() => setOrderCount(orderCount + 1)} className="text-terminal-dim hover:text-white text-xs px-1">+</button>
+            </div>
+            <div className="text-[10px] text-terminal-dim font-mono">
+              @ {selectedPrice}c
+            </div>
+            <div className="flex-1 text-right">
+              <span className="text-[10px] text-terminal-muted font-mono">Total: </span>
+              <span className="text-xs text-white font-bold font-mono">${totalCost}</span>
+            </div>
+          </div>
+
+          {/* Execute + Cancel */}
+          <div className="flex gap-2">
+            <button
+              onClick={handleOrder}
+              disabled={ordering}
+              className={`flex-1 h-8 rounded text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                orderSide === 'yes'
+                  ? 'bg-terminal-green/20 hover:bg-terminal-green/30 text-terminal-green border-terminal-green/40'
+                  : 'bg-terminal-red/20 hover:bg-terminal-red/30 text-terminal-red border-terminal-red/40'
+              } disabled:opacity-40`}
+            >
+              {ordering ? 'PLACING...' : `CONFIRM ${orderSide.toUpperCase()}`}
+            </button>
+            <button
+              onClick={() => { setOrderMode(false); setOrderResult(null) }}
+              className="h-8 px-3 rounded text-[10px] font-bold text-terminal-dim border border-white/10 hover:border-white/20 hover:text-white transition-all"
+            >
+              CANCEL
+            </button>
+          </div>
+
+          {/* Result */}
+          {orderResult && (
+            <div className={`text-[10px] font-mono p-2 rounded border ${
+              orderResult.success
+                ? 'text-terminal-green border-terminal-green/30 bg-terminal-green/5'
+                : 'text-terminal-red border-terminal-red/30 bg-terminal-red/5'
+            }`}>
+              {orderResult.message}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="flex gap-2 relative z-10">
+          {isOwner ? (
+            <Button
+              onClick={() => setOrderMode(true)}
+              className="w-full h-8 bg-terminal-green/10 hover:bg-terminal-green/20 text-terminal-green border border-terminal-green/30 hover:border-terminal-green/50 text-[10px] uppercase font-bold tracking-wider transition-all"
+            >
+              Quick Order
+            </Button>
+          ) : (
+            <a href={recommendation.kalshiUrl} target="_blank" rel="noopener noreferrer" className="flex-1">
+              <Button className="w-full h-8 bg-terminal-text/5 hover:bg-terminal-green/20 text-terminal-text hover:text-terminal-green border border-terminal-text/10 hover:border-terminal-green/50 text-[10px] uppercase font-bold tracking-wider transition-all">
+                View on Kalshi
+              </Button>
+            </a>
+          )}
+        </div>
+      )}
     </div>
   )
 }

@@ -78,9 +78,11 @@ export async function verifyCredentials(credentials: KalshiCredentials): Promise
     let username: string | undefined
     try {
       const memberInfo = await kalshiFetch<{ member: { username?: string } }>(credentials, 'GET', '/members/me')
+      console.log('📋 /members/me response:', JSON.stringify(memberInfo))
       username = memberInfo?.member?.username
-    } catch {
-      // Some API configs may not support this endpoint — not critical
+      console.log('👤 Fetched username:', username)
+    } catch (e) {
+      console.error('⚠️ /members/me failed:', e)
     }
 
     return { valid: true, username }
