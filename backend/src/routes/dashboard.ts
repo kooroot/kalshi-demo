@@ -41,12 +41,12 @@ dashboardRoute.get('/balance/:id', async (c) => {
   try {
     const balanceData = await getBalance(credentials)
     return c.json({
-      // Kalshi balance is in centi-cents (1/100 of a cent)
-      // $1.00 = 10000 centi-cents
-      balanceCents: Math.round(balanceData.balance / 100),
-      balanceDollars: (balanceData.balance / 10000).toFixed(2),
-      portfolioValueCents: Math.round(balanceData.portfolio_value / 100),
-      portfolioValueDollars: (balanceData.portfolio_value / 10000).toFixed(2),
+      // Kalshi balance is in cents
+      // $1.00 = 100 cents
+      balanceCents: balanceData.balance,
+      balanceDollars: (balanceData.balance / 100).toFixed(2),
+      portfolioValueCents: balanceData.portfolio_value,
+      portfolioValueDollars: (balanceData.portfolio_value / 100).toFixed(2),
     })
   } catch (error) {
     console.error('Balance error:', error)
@@ -106,7 +106,7 @@ dashboardRoute.post('/hedge/execute/:id', async (c) => {
 
     // Verify balance
     const balanceData = await getBalance(credentials)
-    const balanceCents = Math.round(balanceData.balance / 100)
+    const balanceCents = balanceData.balance
     const totalCost = count * price
 
     if (totalCost > balanceCents) {

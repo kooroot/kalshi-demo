@@ -125,7 +125,7 @@ export async function analyzePortfolioRisk(credentials: KalshiCredentials): Prom
 
   // High exposure
   const balanceData = await getBalance(credentials)
-  const balanceInCents = balanceData.balance / 100 // balance is in centi-cents
+  const balanceInCents = balanceData.balance // balance is already in cents
   if (totalExposure > balanceInCents * 0.8) {
     alerts.push({
       type: 'high_exposure',

@@ -3,31 +3,30 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Terminal / Bloomberg Aesthetic */
+/* Shield & Scout Cyber-Terminal Aesthetic */
 :root {
-  /* Core terminal colors - Darker, deeper but cleaner */
-  --terminal-bg: #050505;
-  --terminal-bg-elevated: #111111;
-  --terminal-bg-panel: rgba(13, 17, 23, 0.85);
-  --terminal-border: #30363d;
-  --terminal-border-bright: #58a6ff;
-  --terminal-glass: rgba(10, 10, 10, 0.9);
+  /* Core colors */
+  --terminal-bg: #030507;
+  --terminal-bg-elevated: #0a0e14;
+  --terminal-bg-panel: rgba(13, 18, 25, 0.9);
+  --terminal-border: #1a2332;
+  --terminal-border-bright: #293649;
+  --terminal-glass: rgba(10, 14, 20, 0.85);
 
-  /* Text hierarchy - Higher contrast */
-  --terminal-text: #f0f6fc;
-  --terminal-text-muted: #9198a1;
-  --terminal-text-dim: #6e7681;
+  /* Text hierarchy */
+  --terminal-text: #e2e8f0;
+  --terminal-text-muted: #8b9bb4;
+  --terminal-text-dim: #54657e;
 
-  /* Accent colors - Bloomberg inspired */
-  --accent-green: #3fb950;
-  --accent-green-dim: #238636;
-  --accent-red: #f85149;
-  --accent-red-dim: #da3633;
-  --accent-orange: #d29922;
-  --accent-blue: #58a6ff;
-  --accent-purple: #a371f7;
-  --accent-cyan: #39c5cf;
-  --accent-yellow: #e3b341;
+  /* Accent colors - Cyberpunk/Terminal */
+  --accent-green: #00ff9d;
+  --accent-green-dim: #00cc7e;
+  --accent-red: #ff3366;
+  --accent-orange: #ff9933;
+  --accent-blue: #00f0ff;
+  --accent-purple: #b05cff;
+  --accent-cyan: #00f0ff;
+  --accent-yellow: #f59e0b;
 
   /* Shadcn mappings */
   --background: var(--terminal-bg);
@@ -37,19 +36,19 @@
   --popover: var(--terminal-bg-elevated);
   --popover-foreground: var(--terminal-text);
   --primary: var(--accent-green);
-  --primary-foreground: #000000;
+  --primary-foreground: #ffffff;
   --secondary: var(--terminal-bg-panel);
   --secondary-foreground: var(--terminal-text);
   --muted: var(--terminal-bg-panel);
   --muted-foreground: var(--terminal-text-muted);
-  --accent: var(--terminal-bg-panel);
+  --accent: var(--terminal-border);
   --accent-foreground: var(--terminal-text);
   --destructive: var(--accent-red);
   --destructive-foreground: #ffffff;
   --border: var(--terminal-border);
   --input: var(--terminal-border);
   --ring: var(--accent-green);
-  --radius: 0.25rem;
+  --radius: 0.5rem;
 }
 
 * {
@@ -60,7 +59,7 @@ body {
   background-color: var(--terminal-bg);
   color: var(--terminal-text);
   font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
-  font-size: 13px;
+  font-size: 14.5px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -89,7 +88,9 @@ body {
 .terminal-panel {
   background: var(--terminal-bg-panel);
   border: 1px solid var(--terminal-border);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.5),
+    0 2px 4px -1px rgba(0, 0, 0, 0.3);
 }
 
 .terminal-glass-panel {
@@ -106,117 +107,232 @@ body {
 }
 
 .text-glow {
-  text-shadow: 0 0 5px rgba(63, 185, 80, 0.3);
+  text-shadow: 0 0 8px rgba(0, 255, 157, 0.4);
 }
 
 .text-glow-sm {
   text-shadow: none;
 }
 
-.text-terminal-green { color: var(--accent-green); }
-.text-terminal-red { color: var(--accent-red); }
-.text-terminal-orange { color: var(--accent-orange); }
-.text-terminal-blue { color: var(--accent-blue); }
-.text-terminal-purple { color: var(--accent-purple); }
-.text-terminal-cyan { color: var(--accent-cyan); }
-.text-terminal-yellow { color: var(--accent-yellow); }
-.text-terminal-muted { color: var(--terminal-text-muted); }
-.text-terminal-dim { color: var(--terminal-text-dim); }
+.text-terminal-green {
+  color: var(--accent-green);
+}
 
-.bg-terminal { background: var(--terminal-bg); }
-.bg-terminal-elevated { background: var(--terminal-bg-elevated); }
-.bg-terminal-panel { background: var(--terminal-bg-panel); }
-.border-terminal { border-color: var(--terminal-border); }
-.border-terminal-bright { border-color: var(--terminal-border-bright); }
+.text-terminal-red {
+  color: var(--accent-red);
+}
+
+.text-terminal-orange {
+  color: var(--accent-orange);
+}
+
+.text-terminal-blue {
+  color: var(--accent-blue);
+}
+
+.text-terminal-purple {
+  color: var(--accent-purple);
+}
+
+.text-terminal-cyan {
+  color: var(--accent-cyan);
+}
+
+.text-terminal-yellow {
+  color: var(--accent-yellow);
+}
+
+.text-terminal-muted {
+  color: var(--terminal-text-muted);
+}
+
+.text-terminal-dim {
+  color: var(--terminal-text-dim);
+}
+
+.bg-terminal {
+  background: var(--terminal-bg);
+}
+
+.bg-terminal-elevated {
+  background: var(--terminal-bg-elevated);
+}
+
+.bg-terminal-panel {
+  background: var(--terminal-bg-panel);
+}
+
+.border-terminal {
+  border-color: var(--terminal-border);
+}
+
+.border-terminal-bright {
+  border-color: var(--terminal-border-bright);
+}
 
 /* Animations */
-@keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
-}
-
-@keyframes scanline {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100vh); }
-}
-
-@keyframes typewriter {
-  from { width: 0; }
-  to { width: 100%; }
-}
-
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(15px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-@keyframes pulse-green {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(63, 185, 80, 0.4); }
-  50% { box-shadow: 0 0 0 6px rgba(63, 185, 80, 0); }
-}
-
 @keyframes glitch {
-  0% { transform: translate(0); }
-  20% { transform: translate(-2px, 2px); }
-  40% { transform: translate(-2px, -2px); }
-  60% { transform: translate(2px, 2px); }
-  80% { transform: translate(2px, -2px); }
-  100% { transform: translate(0); }
+  0% {
+    transform: translate(0)
+  }
+
+  20% {
+    transform: translate(-2px, 2px)
+  }
+
+  40% {
+    transform: translate(-2px, -2px)
+  }
+
+  60% {
+    transform: translate(2px, 2px)
+  }
+
+  80% {
+    transform: translate(2px, -2px)
+  }
+
+  100% {
+    transform: translate(0)
+  }
 }
 
-.animate-blink { animation: blink 1s step-end infinite; }
-.animate-fade-in-up { animation: fadeInUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
-.animate-pulse-green { animation: pulse-green 2s ease-in-out infinite; }
-.hover-glitch:hover { animation: glitch 0.2s cubic-bezier(.25, .46, .45, .94) both infinite; }
+@keyframes blink {
+
+  0%,
+  50% {
+    opacity: 1;
+  }
+
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes scanline {
+  0% {
+    transform: translateY(-100%);
+  }
+
+  100% {
+    transform: translateY(100vh);
+  }
+}
+
+@keyframes typewriter {
+  from {
+    width: 0;
+  }
+
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes pulse-green {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 255, 157, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 0 6px rgba(0, 255, 157, 0);
+  }
+}
+
+@keyframes pulse-blue {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 240, 255, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 0 6px rgba(0, 240, 255, 0);
+  }
+}
+
+.animate-blink {
+  animation: blink 1s step-end infinite;
+}
+
+.animate-pulse-green {
+  animation: pulse-green 2s ease-in-out infinite;
+}
+
+.animate-pulse-blue {
+  animation: pulse-blue 2s ease-in-out infinite;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.hover-glitch:hover {
+  animation: glitch 0.2s cubic-bezier(.25, .46, .45, .94) both infinite;
+}
 
 /* Staggered animations */
-.stagger-1 { animation-delay: 0.05s; }
-.stagger-2 { animation-delay: 0.1s; }
-.stagger-3 { animation-delay: 0.15s; }
-.stagger-4 { animation-delay: 0.2s; }
-.stagger-5 { animation-delay: 0.25s; }
-.stagger-6 { animation-delay: 0.3s; }
+.stagger-1 {
+  animation-delay: 0.05s;
+}
+
+.stagger-2 {
+  animation-delay: 0.1s;
+}
+
+.stagger-3 {
+  animation-delay: 0.15s;
+}
+
+.stagger-4 {
+  animation-delay: 0.2s;
+}
+
+.stagger-5 {
+  animation-delay: 0.25s;
+}
+
+.stagger-6 {
+  animation-delay: 0.3s;
+}
 
 /* Terminal cursor */
 .terminal-cursor::after {
-  content: '█';
+  content: "█";
   animation: blink 1s step-end infinite;
   color: var(--accent-green);
 }
 
-/* Noise overlay effect - Subtle */
-.noise-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  opacity: 0.015;
-  z-index: 9999;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-}
-
-/* Grid background */
+/* Minimalist Grid and Background */
 .grid-bg {
-  background-size: 40px 40px;
   background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
 }
 
 .grid-bg::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 50% 50%, rgba(63, 185, 80, 0.05), transparent 60%);
+  background: radial-gradient(circle at 50% 50%,
+      rgba(59, 130, 246, 0.05),
+      transparent 70%);
   pointer-events: none;
 }
 
@@ -243,12 +359,28 @@ body {
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  /* Expose Custom Variables to Tailwind Utilities */
+  --color-terminal-bg: var(--terminal-bg);
+  --color-terminal-bg-panel: var(--terminal-bg-panel);
+  --color-terminal-border: var(--terminal-border);
+  --color-terminal-text: var(--terminal-text);
+  --color-terminal-muted: var(--terminal-text-muted);
+  --color-terminal-dim: var(--terminal-text-dim);
+  --color-terminal-green: var(--accent-green);
+  --color-terminal-blue: var(--accent-blue);
+  --color-terminal-red: var(--accent-red);
+  --color-terminal-orange: var(--accent-orange);
+  --color-terminal-purple: var(--accent-purple);
+  --color-terminal-cyan: var(--accent-cyan);
+  --color-terminal-yellow: var(--accent-yellow);
 }
 
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }

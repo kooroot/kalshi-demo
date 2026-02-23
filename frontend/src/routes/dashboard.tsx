@@ -54,13 +54,16 @@ export function DashboardPage() {
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Nav tabs */}
-          <nav className="flex gap-1 bg-black/30 rounded-lg p-0.5 border border-white/5">
-            <Link to="/profile/$profileId" params={{ profileId }} className="px-3 py-1.5 text-[10px] uppercase tracking-wider font-bold text-terminal-muted hover:text-terminal-text transition-colors rounded">
-              Scout
+          {/* High-tech Nav tabs */}
+          <nav className="flex items-center bg-black/60 rounded border border-terminal-border p-1 shadow-inner relative overflow-hidden">
+            <div className="absolute left-1/2 top-1 bottom-1 w-[1px] bg-terminal-border/50 z-0" />
+            <Link to="/profile/$profileId" params={{ profileId }} className="relative z-10 flex-1 min-w-[130px] flex flex-col items-center justify-center py-1.5 text-[10px] sm:text-xs tracking-widest uppercase font-bold text-terminal-muted hover:text-terminal-green transition-colors hover:bg-terminal-green/5 rounded-sm">
+              <span className="text-[8px] text-terminal-dim tracking-wider mb-0.5 leading-none">STANDBY</span>
+              <span className="leading-none">SCOUT</span>
             </Link>
-            <div className="px-3 py-1.5 text-[10px] uppercase tracking-wider font-bold text-terminal-green bg-terminal-green/10 rounded border border-terminal-green/20">
-              Shield
+            <div className="relative z-10 flex-1 min-w-[130px] flex flex-col items-center justify-center py-1.5 text-[10px] sm:text-xs tracking-widest uppercase font-black text-black bg-terminal-cyan scale-100 rounded-sm shadow-[0_0_15px_rgba(0,240,255,0.4)]">
+              <span className="text-[8px] font-bold text-black/60 tracking-wider mb-0.5 leading-none">ACTIVE_MODE</span>
+              <span className="leading-none">SHIELD</span>
             </div>
           </nav>
 
@@ -83,11 +86,10 @@ export function DashboardPage() {
             {portfolioQuery.data.alerts.map((alert, i) => (
               <div
                 key={i}
-                className={`p-3 rounded-lg border flex items-center gap-3 text-xs font-mono ${
-                  alert.severity === 'critical'
-                    ? 'bg-terminal-red/5 border-terminal-red/30 text-terminal-red'
-                    : 'bg-terminal-yellow/5 border-terminal-yellow/30 text-terminal-yellow'
-                }`}
+                className={`p-3 rounded-lg border flex items-center gap-3 text-xs font-mono ${alert.severity === 'critical'
+                  ? 'bg-terminal-red/5 border-terminal-red/30 text-terminal-red'
+                  : 'bg-terminal-yellow/5 border-terminal-yellow/30 text-terminal-yellow'
+                  }`}
               >
                 <span className="text-lg">{alert.severity === 'critical' ? '🚨' : '⚠️'}</span>
                 <div>
@@ -248,7 +250,7 @@ function PositionsPanel({ positions, profileId }: { positions: PositionData[]; p
     <div className="space-y-4">
       {/* Section header */}
       <div className="flex items-center gap-3">
-        <div className="w-2 h-8 bg-terminal-cyan rounded-sm" />
+        <div className="w-2 h-8 bg-terminal-cyan rounded-sm shadow-[0_0_10px_rgba(0,240,255,0.5)]" />
         <div>
           <h2 className="text-lg font-bold tracking-wider text-white">ACTIVE_POSITIONS</h2>
           <div className="text-[10px] text-terminal-muted font-mono uppercase tracking-widest">Select position to hedge</div>
@@ -261,9 +263,8 @@ function PositionsPanel({ positions, profileId }: { positions: PositionData[]; p
           <div
             key={pos.ticker}
             onClick={() => { setSelectedTicker(pos.ticker); setHedgeResult(null); setOrderStatus(null) }}
-            className={`terminal-glass-panel p-4 rounded-lg cursor-pointer transition-all hover:border-terminal-cyan/50 ${
-              selectedTicker === pos.ticker ? 'border-terminal-cyan/50 bg-terminal-cyan/5' : 'border-white/5'
-            }`}
+            className={`terminal-glass-panel p-4 rounded-lg cursor-pointer transition-all hover:border-terminal-cyan/50 ${selectedTicker === pos.ticker ? 'border-terminal-cyan/50 bg-terminal-cyan/5' : 'border-white/5'
+              }`}
           >
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
@@ -362,9 +363,8 @@ function PositionsPanel({ positions, profileId }: { positions: PositionData[]; p
               </Button>
 
               {orderStatus && (
-                <div className={`text-xs font-mono p-3 rounded border ${
-                  orderStatus.startsWith('Failed') ? 'bg-terminal-red/5 border-terminal-red/20 text-terminal-red' : 'bg-terminal-green/5 border-terminal-green/20 text-terminal-green'
-                }`}>
+                <div className={`text-xs font-mono p-3 rounded border ${orderStatus.startsWith('Failed') ? 'bg-terminal-red/5 border-terminal-red/20 text-terminal-red' : 'bg-terminal-green/5 border-terminal-green/20 text-terminal-green'
+                  }`}>
                   {orderStatus}
                 </div>
               )}
@@ -387,66 +387,91 @@ function HedgeStat({ label, value }: { label: string; value: string }) {
 
 function RiskBreakdown({ risk }: { risk: PortfolioRisk }) {
   return (
-    <>
-      {/* Category Concentration */}
-      <div className="terminal-glass-panel p-6 rounded-xl border-t border-t-white/10">
-        <div className="flex items-center gap-2 mb-5">
-          <span className="text-terminal-orange text-xs">●</span>
-          <span className="text-terminal-muted text-xs uppercase tracking-widest font-bold">Sector_Exposure</span>
-        </div>
-
-        {risk.categoryBreakdown.length === 0 ? (
-          <div className="text-terminal-dim text-sm italic">No positions to analyze</div>
-        ) : (
-          <div className="space-y-4">
-            {risk.categoryBreakdown.map((cat, i) => {
-              const colors = ['bg-terminal-cyan', 'bg-terminal-blue', 'bg-terminal-purple', 'bg-terminal-orange', 'bg-terminal-green']
-              return (
-                <div key={i} className="space-y-1.5 group">
-                  <div className="flex justify-between text-[11px]">
-                    <span className="text-terminal-text">{cat.name}</span>
-                    <span className="font-mono text-terminal-muted">{cat.percentage}% · ${(cat.exposure / 100).toFixed(2)}</span>
-                  </div>
-                  <div className="h-1.5 bg-black/40 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full ${colors[i % colors.length]} rounded-full transition-all duration-1000`}
-                      style={{ width: `${cat.percentage}%` }}
-                    />
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Direction Bias */}
-      <div className="terminal-glass-panel p-6 rounded-xl border-t border-t-white/10">
-        <div className="flex items-center gap-2 mb-5">
-          <span className="text-terminal-purple text-xs">●</span>
-          <span className="text-terminal-muted text-xs uppercase tracking-widest font-bold">Direction_Bias</span>
-        </div>
-
-        <div className="flex gap-2 h-6 rounded-full overflow-hidden bg-black/40">
-          <div
-            className="bg-terminal-green/70 rounded-l-full flex items-center justify-center text-[9px] font-bold font-mono transition-all duration-700"
-            style={{ width: `${risk.directionBias.yes}%` }}
-          >
-            {risk.directionBias.yes > 15 && `YES ${risk.directionBias.yes}%`}
-          </div>
-          <div
-            className="bg-terminal-red/70 rounded-r-full flex items-center justify-center text-[9px] font-bold font-mono transition-all duration-700"
-            style={{ width: `${risk.directionBias.no}%` }}
-          >
-            {risk.directionBias.no > 15 && `NO ${risk.directionBias.no}%`}
-          </div>
-        </div>
-
-        <div className="flex justify-between text-[10px] text-terminal-dim mt-3">
-          <span>Bullish bias</span>
-          <span>Bearish bias</span>
+    <div className="space-y-4">
+      {/* Risk Section Header */}
+      <div className="flex items-center gap-3">
+        <div className="w-2 h-8 bg-terminal-cyan rounded-sm shadow-[0_0_10px_rgba(0,240,255,0.5)]" />
+        <div>
+          <h2 className="text-lg font-bold tracking-wider text-white flex items-center gap-2">
+            RISK_ANALYSIS
+          </h2>
+          <div className="text-[10px] text-terminal-muted font-mono uppercase tracking-widest">Portfolio Exposure & Bias</div>
         </div>
       </div>
-    </>
+
+      <div className="space-y-4 opacity-0 animate-fade-in-up stagger-2">
+        {/* Category Concentration */}
+        <div className="terminal-glass-panel p-6 rounded-xl border border-terminal-border bg-gradient-to-br from-white/[0.02] to-transparent hover:border-terminal-orange/40 transition-all shadow-lg hover:shadow-terminal-orange/10 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-terminal-orange/5 rounded-full blur-3xl group-hover:bg-terminal-orange/10 transition-all duration-700 pointer-events-none" />
+
+          <div className="flex items-center gap-2 mb-6">
+            <span className="text-terminal-orange text-xs animate-pulse">●</span>
+            <span className="text-white text-xs uppercase tracking-widest font-bold">Sector_Exposure</span>
+          </div>
+
+          {risk.categoryBreakdown.length === 0 ? (
+            <div className="text-terminal-dim text-sm italic">No positions to analyze</div>
+          ) : (
+            <div className="space-y-5">
+              {risk.categoryBreakdown.map((cat, i) => {
+                const colors = ['bg-terminal-cyan', 'bg-terminal-blue', 'bg-terminal-purple', 'bg-terminal-orange', 'bg-terminal-green']
+                const colorHex = ['rgba(0,240,255', 'rgba(59,130,246', 'rgba(168,85,247', 'rgba(249,115,22', 'rgba(16,185,129']
+                return (
+                  <div key={i} className="space-y-2 group/bar">
+                    <div className="flex justify-between text-[11px] items-end">
+                      <span className="text-terminal-text group-hover/bar:text-white transition-colors">{cat.name}</span>
+                      <div className="text-right">
+                        <div className="font-mono text-terminal-muted text-[10px] group-hover/bar:text-terminal-text transition-colors">
+                          {cat.percentage}% · ${(cat.exposure / 100).toFixed(2)}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="h-1.5 bg-black/50 rounded-full overflow-hidden border border-white/5">
+                      <div
+                        className={`h-full ${colors[i % colors.length]} rounded-full transition-all duration-1000 group-hover/bar:brightness-125`}
+                        style={{
+                          width: `${cat.percentage}%`,
+                          boxShadow: `0 0 10px ${colorHex[i % colorHex.length]}, 0.5)`
+                        }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Direction Bias */}
+        <div className="terminal-glass-panel p-6 rounded-xl border border-terminal-border bg-gradient-to-br from-white/[0.02] to-transparent hover:border-terminal-purple/40 transition-all shadow-lg hover:shadow-terminal-purple/10 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-terminal-purple/5 rounded-full blur-3xl group-hover:bg-terminal-purple/10 transition-all duration-700 pointer-events-none" />
+
+          <div className="flex items-center gap-2 mb-6">
+            <span className="text-terminal-purple text-xs animate-pulse">●</span>
+            <span className="text-white text-xs uppercase tracking-widest font-bold">Direction_Bias</span>
+          </div>
+
+          <div className="flex gap-1 h-8 rounded p-1 bg-black/60 border border-white/5 shadow-inner">
+            <div
+              className="bg-terminal-green/80 rounded flex items-center justify-center text-[10px] font-bold font-mono transition-all duration-700 shadow-[0_0_10px_rgba(0,255,157,0.2)]"
+              style={{ width: `${risk.directionBias.yes}%` }}
+            >
+              {risk.directionBias.yes > 15 && <span className="text-black drop-shadow-md">YES {risk.directionBias.yes}%</span>}
+            </div>
+            <div
+              className="bg-terminal-red/80 rounded flex items-center justify-center text-[10px] font-bold font-mono transition-all duration-700 shadow-[0_0_10px_rgba(255,51,102,0.2)]"
+              style={{ width: `${risk.directionBias.no}%` }}
+            >
+              {risk.directionBias.no > 15 && <span className="text-white drop-shadow-md">NO {risk.directionBias.no}%</span>}
+            </div>
+          </div>
+
+          <div className="flex justify-between text-[10px] text-terminal-dim mt-4 uppercase tracking-widest font-bold">
+            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-terminal-green/50"></span> Bullish base</span>
+            <span className="flex items-center gap-1">Bearish base <span className="w-1.5 h-1.5 rounded-full bg-terminal-red/50"></span></span>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }

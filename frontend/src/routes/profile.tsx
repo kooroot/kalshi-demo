@@ -3,7 +3,6 @@ import { useParams, useNavigate, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { getProfile, getRecommendations, type PersonalityAnalysis, type MarketRecommendation } from '@/lib/api'
 
@@ -42,9 +41,9 @@ export function ProfilePage() {
   if (profileQuery.isLoading) {
     return (
       <div className="min-h-screen bg-terminal grid-bg flex items-center justify-center">
-        <div className="terminal-glass-panel p-12 text-center rounded-lg border-terminal-green/20 box-shadow-[0_0_50px_rgba(63,185,80,0.1)]">
-          <div className="text-terminal-green text-2xl mb-4 font-bold tracking-widest animate-pulse">ANALYZING_DATA_STREAM</div>
-          <div className="text-terminal-muted text-xs font-mono tracking-widest uppercase">Decryption in progress...</div>
+        <div className="terminal-glass-panel p-16 text-center rounded-2xl border border-terminal-green/30 shadow-[0_0_50px_rgba(63,185,80,0.15)] backdrop-blur-xl">
+          <div className="text-terminal-green text-3xl mb-6 font-black tracking-[0.2em] animate-pulse">ANALYZING_DATA_STREAM</div>
+          <div className="text-terminal-muted text-sm font-mono tracking-widest uppercase">Decryption in progress...</div>
           <div className="mt-8 flex justify-center gap-2">
             {[0, 1, 2, 3, 4].map(i => (
               <div
@@ -62,10 +61,10 @@ export function ProfilePage() {
   if (profileQuery.error?.message?.includes('expired') || profileQuery.error?.message?.includes('reconnect')) {
     return (
       <div className="min-h-screen bg-terminal grid-bg flex items-center justify-center">
-        <div className="terminal-glass-panel p-12 text-center space-y-6 rounded-lg max-w-md border-terminal-yellow/20">
-          <div className="text-terminal-yellow text-4xl mb-2">⚠</div>
-          <div className="text-xl font-bold text-terminal-text uppercase tracking-widest">Session Expired</div>
-          <div className="text-terminal-muted text-sm font-mono">Security protocol requires re-authentication.</div>
+        <div className="terminal-glass-panel p-16 text-center space-y-8 rounded-2xl max-w-md border border-terminal-yellow/30 shadow-2xl backdrop-blur-xl">
+          <div className="text-terminal-yellow text-6xl mb-4 drop-shadow-[0_0_15px_rgba(227,179,65,0.4)]">⚠</div>
+          <div className="text-2xl font-black text-white uppercase tracking-widest">Session Expired</div>
+          <div className="text-terminal-muted text-base font-mono leading-relaxed">Security protocol requires re-authentication. Uplink severed.</div>
           <Button
             onClick={() => navigate({ to: '/' })}
             className="w-full bg-terminal-yellow/10 hover:bg-terminal-yellow/20 text-terminal-yellow border border-terminal-yellow/50"
@@ -80,10 +79,10 @@ export function ProfilePage() {
   if (profileQuery.error) {
     return (
       <div className="min-h-screen bg-terminal grid-bg flex items-center justify-center">
-        <div className="terminal-glass-panel p-12 text-center space-y-6 rounded-lg max-w-md border-terminal-red/20">
-          <div className="text-terminal-red text-4xl mb-2">✗</div>
-          <div className="text-xl font-bold text-terminal-text uppercase tracking-widest">System Failure</div>
-          <div className="text-terminal-muted text-sm font-mono code bg-black/50 p-2 rounded">{profileQuery.error.message}</div>
+        <div className="terminal-glass-panel p-16 text-center space-y-8 rounded-2xl max-w-md border border-terminal-red/30 shadow-2xl backdrop-blur-xl">
+          <div className="text-terminal-red text-6xl mb-4 drop-shadow-[0_0_15px_rgba(248,81,73,0.4)]">✗</div>
+          <div className="text-2xl font-black text-white uppercase tracking-widest">System Failure</div>
+          <div className="text-terminal-red/80 text-sm font-mono bg-black/60 p-4 rounded border border-terminal-red/20 overflow-x-auto whitespace-pre-wrap">{profileQuery.error.message}</div>
           <Button
             onClick={() => navigate({ to: '/' })}
             variant="outline"
@@ -114,19 +113,22 @@ export function ProfilePage() {
             </div>
           </div>
           <div className="h-4 w-px bg-white/10 mx-2" />
-          <span className="text-terminal-green text-xs font-bold tracking-[0.2em] hover-glitch cursor-default">KALSHI<span className="text-white/30">_OS</span></span>
+          <span className="text-terminal-green text-xs font-bold tracking-[0.2em] hover-glitch cursor-default">KALSHI<span className="text-white/30">_SCOUT</span></span>
         </div>
-        <div className="flex items-center gap-4 text-[10px] font-mono font-medium">
-          {/* Nav tabs */}
-          <nav className="flex gap-1 bg-black/30 rounded-lg p-0.5 border border-white/5">
-            <div className="px-3 py-1.5 text-[10px] uppercase tracking-wider font-bold text-terminal-green bg-terminal-green/10 rounded border border-terminal-green/20">
-              Scout
+        <div className="flex items-center gap-6 text-sm font-mono font-medium">
+          {/* High-tech Nav tabs */}
+          <nav className="flex items-center bg-black/60 rounded border border-terminal-border p-1 shadow-inner relative overflow-hidden">
+            <div className="absolute left-1/2 top-1 bottom-1 w-[1px] bg-terminal-border/50 z-0" />
+            <div className="relative z-10 flex-1 min-w-[130px] flex flex-col items-center justify-center py-1.5 text-[10px] sm:text-xs tracking-widest uppercase font-black text-black bg-terminal-green scale-100 rounded-sm shadow-[0_0_15px_rgba(0,255,157,0.4)]">
+              <span className="text-[8px] font-bold text-black/60 tracking-wider mb-0.5 leading-none">ACTIVE_MODE</span>
+              <span className="leading-none">SCOUT</span>
             </div>
-            <Link to="/dashboard/$profileId" params={{ profileId }} className="px-3 py-1.5 text-[10px] uppercase tracking-wider font-bold text-terminal-muted hover:text-terminal-text transition-colors rounded">
-              Shield
+            <Link to="/dashboard/$profileId" params={{ profileId }} className="relative z-10 flex-1 min-w-[130px] flex flex-col items-center justify-center py-1.5 text-[10px] sm:text-xs tracking-widest uppercase font-bold text-terminal-muted hover:text-terminal-blue transition-colors hover:bg-terminal-blue/5 rounded-sm">
+              <span className="text-[8px] text-terminal-dim tracking-wider mb-0.5 leading-none">STANDBY</span>
+              <span className="leading-none">SHIELD</span>
             </Link>
           </nav>
-          <Badge variant="outline" className="border-terminal-green/50 bg-terminal-green/5 text-terminal-green text-[9px] px-2 py-0.5 animate-pulse-green">
+          <Badge variant="outline" className="border-terminal-green/50 bg-terminal-green/5 text-terminal-green text-[11px] px-3 py-1 animate-pulse-green uppercase tracking-widest shadow-[0_0_15px_rgba(63,185,80,0.15)]">
             ● LIVE_FEED
           </Badge>
         </div>
@@ -154,13 +156,13 @@ export function ProfilePage() {
         <div className="opacity-0 animate-fade-in-up stagger-2 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-2 h-8 bg-terminal-green rounded-sm" />
+              <div className="w-2 h-8 bg-terminal-green rounded-sm shadow-[0_0_10px_rgba(0,255,157,0.5)]" />
               <div>
                 <h2 className="text-lg font-bold tracking-wider text-white">MARKET_OPPORTUNITIES</h2>
                 <div className="text-[10px] text-terminal-muted font-mono uppercase tracking-widest">AI-Matched Predictions</div>
               </div>
             </div>
-            <div className="text-xs font-mono text-terminal-dim">
+            <div className="text-xs font-mono text-terminal-dim tracking-widest uppercase font-bold">
               params: <span className="text-terminal-green">--high-confidence</span>
             </div>
           </div>
@@ -208,11 +210,11 @@ function PersonalityHero({ analysis, onShare, onTwitter, copied }: { analysis: P
               {analysis.tag.emoji}
             </div>
             <div className="space-y-2 pt-2">
-              <div className="text-terminal-dim text-[10px] font-bold uppercase tracking-[0.3em] mb-1">TRADER_IDENTITY_CLASSIFICATION</div>
-              <h1 className={`text-4xl md:text-5xl font-black tracking-tight text-white mb-2 ${getTagColor(analysis.tag.name).split(' ')[0]} text-glow`}>
+              <div className="text-terminal-dim text-xs font-bold uppercase tracking-[0.3em] mb-2">TRADER_IDENTITY_CLASSIFICATION</div>
+              <h1 className={`text-5xl md:text-6xl font-black tracking-tight text-white mb-4 ${getTagColor(analysis.tag.name).split(' ')[0]} text-glow`}>
                 {analysis.tag.name}
               </h1>
-              <p className="text-terminal-muted text-sm md:text-base max-w-xl leading-relaxed font-light border-l-2 border-terminal-green/30 pl-4">
+              <p className="text-terminal-muted text-base md:text-lg max-w-xl leading-relaxed font-light border-l-2 border-terminal-green/30 pl-5 py-1">
                 {analysis.tag.description}
               </p>
             </div>
@@ -222,11 +224,10 @@ function PersonalityHero({ analysis, onShare, onTwitter, copied }: { analysis: P
           <div className="flex flex-col gap-3 min-w-[200px]">
             <Button
               onClick={onShare}
-              className={`h-12 border transition-all uppercase tracking-wider text-xs font-bold ${
-                copied
-                  ? 'bg-terminal-green/20 text-terminal-green border-terminal-green/50'
-                  : 'bg-white/5 hover:bg-terminal-cyan/10 text-terminal-cyan border-terminal-cyan/30 hover:border-terminal-cyan'
-              }`}
+              className={`h-12 border transition-all uppercase tracking-wider text-xs font-bold ${copied
+                ? 'bg-terminal-green/20 text-terminal-green border-terminal-green/50'
+                : 'bg-white/5 hover:bg-terminal-cyan/10 text-terminal-cyan border-terminal-cyan/30 hover:border-terminal-cyan'
+                }`}
             >
               {copied ? 'Copied!' : 'Copy Share Link'}
             </Button>
@@ -286,9 +287,9 @@ function StatBlock({ label, value, color, trend }: { label: string; value: strin
   const baseColor = colorStyles[color as keyof typeof colorStyles] || 'text-terminal-text'
 
   return (
-    <div className="bg-black/20 rounded-lg p-4 border border-white/5 hover:border-white/10 transition-colors group">
-      <div className="text-terminal-dim text-[9px] uppercase tracking-widest mb-1 group-hover:text-terminal-muted transition-colors">{label}</div>
-      <div className={`text-2xl md:text-3xl font-black tracking-tight ${baseColor} flex items-center gap-2`}>
+    <div className="bg-black/40 rounded-xl p-5 border border-white/5 hover:border-white/20 transition-all group shadow-inner">
+      <div className="text-terminal-dim text-[11px] font-bold uppercase tracking-[0.2em] mb-2 group-hover:text-terminal-muted transition-colors">{label}</div>
+      <div className={`text-3xl md:text-4xl font-black tracking-tight ${baseColor} flex items-center gap-2`}>
         {value}
         {trend && <span className="text-sm opacity-50">{trend}</span>}
       </div>
@@ -311,12 +312,12 @@ function CategoriesPanel({ categories }: { categories: PersonalityAnalysis['cate
       ) : (
         <div className="space-y-5">
           {categories.slice(0, 5).map((cat, i) => (
-            <div key={i} className="space-y-1.5 group">
-              <div className="flex justify-between text-[11px] font-medium tracking-wide">
+            <div key={i} className="space-y-2 group">
+              <div className="flex justify-between text-xs font-semibold tracking-wide mb-1.5">
                 <span className="text-terminal-text group-hover:text-white transition-colors">{cat.name}</span>
                 <span className="font-mono text-terminal-muted group-hover:text-terminal-green">{cat.percentage}%</span>
               </div>
-              <div className="h-1.5 w-full bg-black/40 rounded-full overflow-hidden">
+              <div className="h-2 w-full bg-black/60 rounded-full overflow-hidden shadow-inner">
                 <div
                   className={`h-full ${colors[i % colors.length]} rounded-full shadow-[0_0_10px_currentColor] transition-all duration-1000 ease-out`}
                   style={{ width: `${cat.percentage}%` }}
@@ -363,8 +364,8 @@ function RiskPanel({ riskProfile }: { riskProfile: PersonalityAnalysis['riskProf
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-2xl font-bold text-white">{riskProfile.type === 'high_risk' ? 'HIGH' : riskProfile.type === 'moderate' ? 'MID' : 'LOW'}</span>
-            <span className="text-[9px] text-terminal-muted uppercase">Risk Level</span>
+            <span className="text-3xl font-black text-white drop-shadow-md">{riskProfile.type === 'high_risk' ? 'HIGH' : riskProfile.type === 'moderate' ? 'MID' : 'LOW'}</span>
+            <span className="text-[10px] font-bold tracking-widest text-terminal-muted uppercase mt-1">Risk Level</span>
           </div>
         </div>
       </div>
@@ -391,13 +392,13 @@ function PerformancePanel({ winRate, roi }: { winRate: PersonalityAnalysis['winR
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white/5 rounded p-3 text-center border border-white/5">
-          <div className="text-terminal-green text-xl font-bold font-mono">{winRate.wins}</div>
-          <div className="text-[9px] uppercase text-terminal-dim mt-1">Wins</div>
+        <div className="bg-black/40 rounded-lg p-4 text-center border border-white/5 shadow-inner">
+          <div className="text-terminal-green text-2xl font-black font-mono">{winRate.wins}</div>
+          <div className="text-[11px] font-bold uppercase tracking-widest text-terminal-dim mt-1.5">Wins</div>
         </div>
-        <div className="bg-white/5 rounded p-3 text-center border border-white/5">
-          <div className="text-terminal-red text-xl font-bold font-mono">{winRate.losses}</div>
-          <div className="text-[9px] uppercase text-terminal-dim mt-1">Losses</div>
+        <div className="bg-black/40 rounded-lg p-4 text-center border border-white/5 shadow-inner">
+          <div className="text-terminal-red text-2xl font-black font-mono">{winRate.losses}</div>
+          <div className="text-[11px] font-bold uppercase tracking-widest text-terminal-dim mt-1.5">Losses</div>
         </div>
       </div>
 
