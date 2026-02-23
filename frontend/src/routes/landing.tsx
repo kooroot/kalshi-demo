@@ -4,8 +4,8 @@ import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { connectKalshi } from "@/lib/api";
-import { Shield, Key, FileKey, Activity, Terminal, ArrowRight, UploadCloud } from "lucide-react";
+import { connectKalshi, searchProfiles, type SearchResult } from "@/lib/api";
+import { Key, FileKey, Terminal, ArrowRight, UploadCloud, Search, User } from "lucide-react";
 
 export function LandingPage() {
   const navigate = useNavigate();
@@ -13,8 +13,15 @@ export function LandingPage() {
   const [privateKey, setPrivateKey] = useState("");
   const [fileError, setFileError] = useState("");
   const [typedText, setTypedText] = useState("");
+  const [isTypingFinished, setIsTypingFinished] = useState(false);
 
-  const fullText = "Protect your portfolio, discover new alpha_";
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchNotFound, setSearchNotFound] = useState(false);
+
+  const fullText = "Protect your portfolio, discover new alpha";
 
   useEffect(() => {
     let i = 0;
@@ -23,6 +30,7 @@ export function LandingPage() {
         setTypedText(fullText.slice(0, i + 1));
         i++;
       } else {
+        setIsTypingFinished(true);
         clearInterval(typeInterval);
       }
     }, 50);
@@ -35,12 +43,40 @@ export function LandingPage() {
   const connectMutation = useMutation({
     mutationFn: () => connectKalshi(apiKeyId, privateKey),
     onSuccess: (data) => {
+      const target = data.username || data.profileId;
       navigate({
-        to: "/profile/$profileId",
-        params: { profileId: data.profileId },
+        to: "/scout/$username",
+        params: { username: target },
       });
     },
   });
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim() || searchQuery.trim().length < 2) return;
+    setIsSearching(true);
+    setSearchNotFound(false);
+    setSearchResults([]);
+    try {
+      const data = await searchProfiles(searchQuery.trim());
+      if (data.found && data.results.length > 0) {
+        // If exact match (single result), navigate directly
+        if (data.results.length === 1) {
+          navigate({
+            to: "/scout/$username",
+            params: { username: data.results[0].username },
+          });
+          return;
+        }
+        setSearchResults(data.results);
+      } else {
+        setSearchNotFound(true);
+      }
+    } catch {
+      setSearchNotFound(true);
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   const validatePemContent = (content: string): boolean => {
     const trimmed = content.trim();
@@ -118,7 +154,7 @@ export function LandingPage() {
             SYSTEM: <span className="text-terminal-text">ONLINE</span>
           </span>
           <span className="text-terminal-blue animate-pulse-blue border border-terminal-blue/40 px-2 py-0.5 rounded text-[9px]">
-            ● UPLINK_STANDBY
+            UPLINK_STANDBY
           </span>
         </div>
       </header>
@@ -136,10 +172,75 @@ export function LandingPage() {
             </h1>
 
             {/* Typewriter text */}
-            <div className="mt-6 h-6">
-              <p className="text-terminal-cyan text-xs md:text-sm font-mono tracking-widest inline-block border-r-2 border-terminal-green pr-1 animate-blink">
-                {typedText}
+            <div className="mt-6 h-6 flex items-center justify-center">
+              <p className="text-terminal-cyan text-xs md:text-sm font-mono tracking-widest inline-block">
+                {typedText}<span className={`text-terminal-green ${isTypingFinished ? 'animate-blink' : ''}`}>_</span>
               </p>
+            </div>
+          </div>
+
+          {/* Search Section */}
+          <div className="terminal-panel p-[1px] rounded-xl opacity-0 animate-fade-in-up stagger-1 bg-gradient-to-r from-terminal-purple/30 via-transparent to-terminal-cyan/30">
+            <div className="bg-terminal-bg/95 backdrop-blur-3xl rounded-xl p-5 md:p-6 border border-white/5">
+              <div className="flex items-center gap-2 mb-4">
+                <Search className="w-4 h-4 text-terminal-purple" />
+                <span className="text-terminal-muted text-[11px] font-bold uppercase tracking-widest">
+                  Find_Trader
+                </span>
+              </div>
+
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    placeholder="Search username..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setSearchNotFound(false);
+                      setSearchResults([]);
+                    }}
+                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                    className="h-12 bg-black/80 border-terminal/60 text-white placeholder:text-zinc-600 focus:border-terminal-purple focus:ring-1 focus:ring-terminal-purple/50 rounded-lg pl-4 pr-4 font-mono text-sm tracking-widest shadow-inner transition-all hover:bg-black"
+                  />
+                </div>
+                <Button
+                  onClick={handleSearch}
+                  disabled={!searchQuery.trim() || isSearching}
+                  className="h-12 px-6 bg-terminal-purple/20 hover:bg-terminal-purple/30 text-terminal-purple border border-terminal-purple/40 hover:border-terminal-purple/60 text-xs uppercase tracking-widest font-bold transition-all disabled:opacity-40"
+                >
+                  {isSearching ? "..." : "Search"}
+                </Button>
+              </div>
+
+              {/* Search Results */}
+              {searchResults.length > 0 && (
+                <div className="mt-3 space-y-1">
+                  {searchResults.map((result) => (
+                    <button
+                      key={result.profileId}
+                      onClick={() =>
+                        navigate({
+                          to: "/scout/$username",
+                          params: { username: result.username },
+                        })
+                      }
+                      className="w-full text-left px-4 py-3 bg-black/40 hover:bg-terminal-purple/10 border border-white/5 hover:border-terminal-purple/30 rounded-lg transition-all flex items-center gap-3 group"
+                    >
+                      <User className="w-4 h-4 text-terminal-dim group-hover:text-terminal-purple transition-colors" />
+                      <span className="font-mono text-sm text-terminal-text group-hover:text-white transition-colors">
+                        {result.username}
+                      </span>
+                      <ArrowRight className="w-3 h-3 text-terminal-dim ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {searchNotFound && (
+                <div className="mt-3 text-center text-terminal-dim text-xs font-mono py-2">
+                  No traders found matching "{searchQuery}"
+                </div>
+              )}
             </div>
           </div>
 
@@ -189,12 +290,12 @@ export function LandingPage() {
 
                 {/* Private Key Input */}
                 <div className="space-y-3 group">
-                  <Label className="text-terminal-muted text-[11px] font-bold uppercase tracking-widest flex items-center gap-2 group-focus-within:text-white transition-colors">
+                  <div className="text-terminal-muted text-[11px] font-bold uppercase tracking-widest flex items-center gap-2 group-focus-within:text-white transition-colors select-none">
                     <span className="text-terminal-green bg-terminal-green/10 px-1.5 py-0.5 rounded shadow-sm border border-terminal-green/20">
                       02
                     </span>{" "}
                     PRIVATE_CERT
-                  </Label>
+                  </div>
 
                   <div className="relative rounded-lg overflow-hidden border border-terminal/60 group-focus-within:border-terminal-green transition-colors bg-black/80">
                     {!privateKey ? (
@@ -282,8 +383,8 @@ export function LandingPage() {
             <div className="border border-terminal-green/30 bg-black/80 backdrop-blur-md p-5 rounded-lg relative overflow-hidden group hover:border-terminal-green/60 transition-colors shadow-lg shadow-black/50 hover:shadow-terminal-green/10">
               <div className="absolute -top-10 -right-10 w-32 h-32 bg-terminal-green/10 rounded-full blur-3xl group-hover:bg-terminal-green/20 transition-all duration-700" />
               <div className="flex items-start gap-4 mb-3 relative z-10">
-                <div className="p-2.5 bg-terminal-green/10 rounded-md border border-terminal-green/20">
-                  <Activity className="w-5 h-5 text-terminal-green" />
+                <div className="w-10 h-10 p-0 rounded border border-terminal-green/30 overflow-hidden flex items-center justify-center bg-black/60">
+                  <img src="/icons/activity_icon_v2_1771836248302.png" alt="Activity Scanner" className="w-24 h-24 object-cover scale-150 mix-blend-screen" />
                 </div>
                 <div>
                   <h3 className="text-white font-bold text-sm tracking-widest uppercase flex items-center gap-2">
@@ -294,15 +395,15 @@ export function LandingPage() {
                 </div>
               </div>
               <p className="text-zinc-400 text-xs font-mono leading-relaxed relative z-10">
-                Analyzes your <span className="text-white font-bold bg-white/10 px-1 py-0.5 rounded">X/Twitter</span> footprint using AI to automatically match your persona with high-yield <span className="text-terminal-green font-bold bg-terminal-green/10 px-1 py-0.5 rounded">Kalshi</span> prediction markets.
+                Analyzes your <span className="text-white font-bold bg-white/10 px-1 py-0.5 rounded">Kalshi trading history</span> using AI to classify your trading personality and match you with high-yield <span className="text-terminal-green font-bold bg-terminal-green/10 px-1 py-0.5 rounded">Kalshi</span> prediction markets.
               </p>
             </div>
 
             <div className="border border-terminal-blue/30 bg-black/80 backdrop-blur-md p-5 rounded-lg relative overflow-hidden group hover:border-terminal-blue/60 transition-colors shadow-lg shadow-black/50 hover:shadow-terminal-blue/10">
               <div className="absolute -top-10 -right-10 w-32 h-32 bg-terminal-blue/10 rounded-full blur-3xl group-hover:bg-terminal-blue/20 transition-all duration-700" />
               <div className="flex items-start gap-4 mb-3 relative z-10">
-                <div className="p-2.5 bg-terminal-blue/10 rounded-md border border-terminal-blue/20">
-                  <Shield className="w-5 h-5 text-terminal-blue" />
+                <div className="w-10 h-10 p-0 rounded border border-terminal-blue/30 overflow-hidden flex items-center justify-center bg-black/60">
+                  <img src="/icons/shield_icon_v2_1771836304980.png" alt="Shield Monitor" className="w-24 h-24 object-cover scale-125 mix-blend-screen" />
                 </div>
                 <div>
                   <h3 className="text-white font-bold text-sm tracking-widest uppercase flex items-center gap-2">

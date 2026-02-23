@@ -21,13 +21,13 @@ const landingRoute = createRoute({
 
 const profileRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/profile/$profileId',
+  path: '/scout/$username',
   component: ProfilePage,
 })
 
 const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/dashboard/$profileId',
+  path: '/shield/$username',
   component: DashboardPage,
 })
 

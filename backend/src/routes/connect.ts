@@ -1,13 +1,15 @@
 import { Hono } from 'hono'
 import { v4 as uuidv4 } from 'uuid'
 import { verifyCredentials } from '../services/kalshi'
-import { createProfile, getProfileByApiKey } from '../db'
+import { createProfile, getProfileByApiKey, updateProfileUsername } from '../db'
 
 export const connectRoute = new Hono()
 
 // In-memory store for credentials (temporary, per-session)
-// In production, you'd want a more secure approach
 export const credentialsStore = new Map<string, { apiKeyId: string; privateKeyPem: string }>()
+
+// Username → profileId fast lookup
+export const usernameToProfileId = new Map<string, string>()
 
 // Validate PEM format server-side
 function isValidPem(content: string): boolean {
@@ -62,28 +64,40 @@ connectRoute.post('/', async (c) => {
       return c.json({ error: 'Invalid API Key ID format.' }, 400)
     }
 
-    // Verify credentials with Kalshi
-    const isValid = await verifyCredentials({ apiKeyId: apiKeyId.trim(), privateKeyPem: privateKeyPem.trim() })
+    // Verify credentials with Kalshi (also fetches username automatically)
+    const verification = await verifyCredentials({ apiKeyId: apiKeyId.trim(), privateKeyPem: privateKeyPem.trim() })
 
-    if (!isValid) {
+    if (!verification.valid) {
       return c.json({ error: 'Invalid credentials. Please check your API key and private key.' }, 401)
     }
+
+    const fetchedUsername = verification.username
 
     // Check if profile already exists for this API key
     let profile = getProfileByApiKey(apiKeyId)
 
     if (!profile) {
-      // Create new profile
+      // Create new profile with auto-fetched username
       const profileId = uuidv4()
-      profile = createProfile(profileId, apiKeyId)
+      profile = createProfile(profileId, apiKeyId, fetchedUsername)
+    } else if (fetchedUsername && !profile.username) {
+      // Update existing profile with auto-fetched username
+      updateProfileUsername(profile.id, fetchedUsername)
+      profile.username = fetchedUsername
     }
 
     // Store credentials in memory (for this session)
     credentialsStore.set(profile.id, { apiKeyId, privateKeyPem })
 
+    // Update username lookup map
+    if (profile.username) {
+      usernameToProfileId.set(profile.username.toLowerCase(), profile.id)
+    }
+
     return c.json({
       success: true,
       profileId: profile.id,
+      username: profile.username,
       message: 'Connected successfully'
     })
   } catch (error) {
