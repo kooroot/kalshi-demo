@@ -83,7 +83,7 @@ export function UserSidebar({ open, onClose, username, profileId, isOwner, balan
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-terminal-text text-sm font-bold tracking-wider truncate">
-                {isUUID ? `${username.slice(0, 8)}...` : username}
+                {/^[a-f0-9-]{36}$/i.test(username) ? `${username.slice(0, 8)}...` : username}
               </div>
               {balanceDollars && (
                 <div className="text-terminal-green text-xs font-mono">${balanceDollars}</div>
