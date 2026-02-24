@@ -1,27 +1,28 @@
 import type { PersonalityAnalysis, KalshiCredentials, MarketRecommendation } from '../types'
 import { getFills, getSettlements, getMarkets, getEvent, getSeries } from './kalshi'
-import { getSocialMetrics, getSocialTrades, getSocialHoldings, getSocialCategoryMetrics } from './kalshi-social'
+import { getSocialTrades, getSocialHoldings } from './kalshi-social'
 
-interface FillData {
+// ── Normalized data formats (shared between both API paths) ──
+
+interface NormalizedTrade {
   ticker: string
   side: 'yes' | 'no'
   action: 'buy' | 'sell'
-  yes_price: number
+  yes_price: number // always in terms of YES price (0-100 cents)
   created_time: string
 }
 
-interface SettlementData {
+interface NormalizedOutcome {
   ticker: string
   event_ticker: string
-  market_result: 'yes' | 'no' | 'void'
-  yes_count: number
-  no_count: number
-  yes_total_cost: number
-  no_total_cost: number
-  revenue: number
+  isVoid: boolean
+  pnl: number      // positive = profit (cents)
+  cost: number      // total cost invested (cents)
+  revenue: number   // total revenue received (cents)
 }
 
-// Cache for event/series data to minimize API calls
+// ── Cache for event/series data to minimize API calls ──
+
 const categoryCache = new Map<string, string>()
 
 async function getMarketCategory(eventTicker: string): Promise<string> {
@@ -38,6 +39,8 @@ async function getMarketCategory(eventTicker: string): Promise<string> {
     return 'Unknown'
   }
 }
+
+// ── Personality tag determination ──
 
 function determinePersonalityTag(analysis: Omit<PersonalityAnalysis, 'tag'>): PersonalityAnalysis['tag'] {
   const { riskProfile, winRate, frequency, categories } = analysis
@@ -114,26 +117,20 @@ function determinePersonalityTag(analysis: Omit<PersonalityAnalysis, 'tag'>): Pe
   }
 }
 
-export async function analyzePersonality(credentials: KalshiCredentials): Promise<PersonalityAnalysis> {
-  // Fetch data
-  const [fillsData, settlementsData] = await Promise.all([
-    getFills(credentials),
-    getSettlements(credentials)
-  ])
+// ── Core unified analysis computation ──
 
-  const fills = fillsData.fills
-  const settlements = settlementsData.settlements
-
-  // 1. Category distribution
+async function computeAnalysis(
+  trades: NormalizedTrade[],
+  outcomes: NormalizedOutcome[]
+): Promise<PersonalityAnalysis> {
+  // 1. Category distribution (from outcomes' event_tickers)
   const categoryCount = new Map<string, number>()
   const eventTickers = new Set<string>()
 
-  // Get unique event tickers from settlements
-  for (const s of settlements) {
-    eventTickers.add(s.event_ticker)
+  for (const o of outcomes) {
+    if (o.event_ticker) eventTickers.add(o.event_ticker)
   }
 
-  // Fetch categories
   for (const eventTicker of eventTickers) {
     const category = await getMarketCategory(eventTicker)
     categoryCount.set(category, (categoryCount.get(category) || 0) + 1)
@@ -148,16 +145,15 @@ export async function analyzePersonality(credentials: KalshiCredentials): Promis
     }))
     .sort((a, b) => b.count - a.count)
 
-  // 2. Risk profile (based on entry prices)
-  let lowRiskCount = 0   // > 70¢
-  let midRiskCount = 0   // 30-70¢
-  let highRiskCount = 0  // < 30¢
+  // 2. Risk profile (based on side-aware entry prices)
+  let lowRiskCount = 0   // > 70c
+  let midRiskCount = 0   // 30-70c
+  let highRiskCount = 0  // < 30c
   let totalPrice = 0
 
-  for (const fill of fills) {
-    // Kalshi API only provides yes_price; no_price = 100 - yes_price
-    const noPrice = 100 - fill.yes_price
-    const entryPrice = fill.side === 'yes' ? fill.yes_price : noPrice
+  for (const trade of trades) {
+    // yes_price is always the YES price; entry price depends on side
+    const entryPrice = trade.side === 'yes' ? trade.yes_price : (100 - trade.yes_price)
 
     totalPrice += entryPrice
 
@@ -166,7 +162,7 @@ export async function analyzePersonality(credentials: KalshiCredentials): Promis
     else midRiskCount++
   }
 
-  const avgEntryPrice = fills.length > 0 ? totalPrice / fills.length : 50
+  const avgEntryPrice = trades.length > 0 ? totalPrice / trades.length : 50
   let riskType: 'high_risk' | 'moderate' | 'conservative' = 'moderate'
 
   if (highRiskCount > lowRiskCount && highRiskCount > midRiskCount) {
@@ -175,45 +171,44 @@ export async function analyzePersonality(credentials: KalshiCredentials): Promis
     riskType = 'conservative'
   }
 
-  // 3. Win rate (revenue-based: actual profit determines win/loss)
+  // 3. Win rate (pnl-based: positive pnl = win)
   let wins = 0
   let losses = 0
 
-  for (const s of settlements) {
-    if (s.market_result === 'void') continue
+  for (const o of outcomes) {
+    if (o.isVoid) continue
+    if (o.cost === 0 && o.revenue === 0) continue
 
-    const totalCostForMarket = s.yes_total_cost + s.no_total_cost
-    if (totalCostForMarket === 0) continue
-
-    // Revenue > cost = profitable = win
-    if (s.revenue > totalCostForMarket) wins++
+    if (o.pnl > 0) wins++
     else losses++
   }
 
   const winPercentage = (wins + losses) > 0 ? Math.round((wins / (wins + losses)) * 100) : 0
 
-  // 4. ROI
+  // 4. ROI (total revenue vs total cost)
   let totalRevenue = 0
   let totalCost = 0
 
-  for (const s of settlements) {
-    totalRevenue += s.revenue
-    totalCost += s.yes_total_cost + s.no_total_cost
+  for (const o of outcomes) {
+    totalRevenue += o.revenue
+    totalCost += o.cost
   }
 
   const roiPercentage = totalCost > 0 ? Math.round(((totalRevenue - totalCost) / totalCost) * 100) : 0
 
   // 5. Trading frequency
   const tradeDates = new Set<string>()
-  for (const fill of fills) {
-    const date = fill.created_time.split('T')[0]
-    tradeDates.add(date)
+  for (const trade of trades) {
+    if (trade.created_time) {
+      const date = trade.created_time.split('T')[0] ?? trade.created_time
+      tradeDates.add(date)
+    }
   }
 
   const activeDays = tradeDates.size || 1
-  const tradesPerDay = Math.round((fills.length / activeDays) * 10) / 10
+  const tradesPerDay = Math.round((trades.length / activeDays) * 10) / 10
 
-  // Build partial analysis
+  // Build analysis
   const partialAnalysis = {
     categories,
     riskProfile: {
@@ -234,132 +229,99 @@ export async function analyzePersonality(credentials: KalshiCredentials): Promis
       percentage: roiPercentage
     },
     frequency: {
-      totalTrades: fills.length,
+      totalTrades: trades.length,
       activeDays,
       tradesPerDay
     }
-  }
-
-  // Determine personality tag
-  const tag = determinePersonalityTag(partialAnalysis)
-
-  return {
-    ...partialAnalysis,
-    tag
-  }
-}
-
-export async function analyzeFromSocial(nickname: string): Promise<PersonalityAnalysis> {
-  // Fetch all social data in parallel
-  const [metrics, trades, closedHoldings, categoryMetrics] = await Promise.all([
-    getSocialMetrics(nickname),
-    getSocialTrades(nickname),
-    getSocialHoldings(nickname, true),
-    getSocialCategoryMetrics(nickname),
-  ])
-
-  // 1. Category distribution from category metrics
-  const totalCategoryValue = categoryMetrics.reduce((sum, cm) => sum + Math.abs(cm.value), 0)
-  const categories = categoryMetrics
-    .map(cm => ({
-      name: cm.category || cm.tag || 'Unknown',
-      count: Math.abs(cm.value),
-      percentage: totalCategoryValue > 0 ? Math.round((Math.abs(cm.value) / totalCategoryValue) * 100) : 0,
-    }))
-    .filter(c => c.percentage > 0)
-    .sort((a, b) => b.count - a.count)
-
-  // 2. Risk profile from trade prices
-  let lowRiskCount = 0
-  let midRiskCount = 0
-  let highRiskCount = 0
-  let totalPrice = 0
-
-  for (const trade of trades) {
-    const price = trade.price // already 0-100 range (cents)
-    totalPrice += price
-
-    if (price < 30) highRiskCount++
-    else if (price > 70) lowRiskCount++
-    else midRiskCount++
-  }
-
-  const avgEntryPrice = trades.length > 0 ? Math.round(totalPrice / trades.length) : 50
-  let riskType: 'high_risk' | 'moderate' | 'conservative' = 'moderate'
-
-  if (highRiskCount > lowRiskCount && highRiskCount > midRiskCount) {
-    riskType = 'high_risk'
-  } else if (lowRiskCount > highRiskCount && lowRiskCount > midRiskCount) {
-    riskType = 'conservative'
-  }
-
-  // 3. Win rate from closed holdings (nested: event → market_holdings[])
-  let wins = 0
-  let losses = 0
-
-  for (const holding of closedHoldings) {
-    for (const mh of holding.market_holdings) {
-      if (mh.pnl > 0) wins++
-      else if (mh.pnl < 0) losses++
-    }
-  }
-
-  const winPercentage = (wins + losses) > 0 ? Math.round((wins / (wins + losses)) * 100) : 0
-
-  // 4. ROI from metrics
-  // pnl is in cents, volume is contract count
-  // Estimate total cost from trades: sum(price * count) for each trade
-  let estimatedTotalCost = 0
-  for (const trade of trades) {
-    estimatedTotalCost += trade.price * trade.count
-  }
-  const pnl = metrics.pnl || 0 // cents
-  const totalCostCents = estimatedTotalCost || 1
-  const roiPercentage = totalCostCents > 0 ? Math.round((pnl / totalCostCents) * 100) : 0
-
-  // 5. Trading frequency from trades
-  const tradeDates = new Set<string>()
-  for (const trade of trades) {
-    if (trade.create_date) {
-      const date = trade.create_date.split('T')[0]
-      tradeDates.add(date)
-    }
-  }
-
-  const activeDays = tradeDates.size || 1
-  const totalTrades = trades.length
-  const tradesPerDay = Math.round((totalTrades / activeDays) * 10) / 10
-
-  const partialAnalysis = {
-    categories,
-    riskProfile: {
-      type: riskType,
-      avgEntryPrice,
-      lowRiskCount,
-      midRiskCount,
-      highRiskCount,
-    },
-    winRate: {
-      wins,
-      losses,
-      percentage: winPercentage,
-    },
-    roi: {
-      totalRevenue: totalCostCents + pnl,
-      totalCost: totalCostCents,
-      percentage: roiPercentage,
-    },
-    frequency: {
-      totalTrades,
-      activeDays,
-      tradesPerDay,
-    },
   }
 
   const tag = determinePersonalityTag(partialAnalysis)
 
   return { ...partialAnalysis, tag }
 }
+
+// ── Authenticated API path ──
+
+export async function analyzePersonality(credentials: KalshiCredentials): Promise<PersonalityAnalysis> {
+  const [fillsData, settlementsData] = await Promise.all([
+    getFills(credentials),
+    getSettlements(credentials)
+  ])
+
+  // Convert fills → NormalizedTrade
+  const trades: NormalizedTrade[] = fillsData.fills.map(f => ({
+    ticker: f.ticker,
+    side: f.side,
+    action: f.action,
+    yes_price: f.yes_price,
+    created_time: f.created_time,
+  }))
+
+  // Convert settlements → NormalizedOutcome
+  const outcomes: NormalizedOutcome[] = settlementsData.settlements.map(s => {
+    const cost = s.yes_total_cost + s.no_total_cost
+    return {
+      ticker: s.ticker,
+      event_ticker: s.event_ticker,
+      isVoid: s.market_result === 'void',
+      pnl: s.revenue - cost,
+      cost,
+      revenue: s.revenue,
+    }
+  })
+
+  return computeAnalysis(trades, outcomes)
+}
+
+// ── Social API path (same computation, different data source) ──
+
+export async function analyzeFromSocial(nickname: string): Promise<PersonalityAnalysis> {
+  const [socialTrades, closedHoldings] = await Promise.all([
+    getSocialTrades(nickname),
+    getSocialHoldings(nickname, true),
+  ])
+
+  // Convert social trades → NormalizedTrade (with side-aware yes_price)
+  const trades: NormalizedTrade[] = socialTrades.map(t => ({
+    ticker: t.ticker,
+    side: t.taker_side,
+    action: t.taker_action,
+    // Social API gives the price the taker paid for their side.
+    // Convert to yes_price: if taker bought YES at 65c, yes_price=65.
+    // If taker bought NO at 40c, yes_price = 100 - 40 = 60.
+    yes_price: t.taker_side === 'yes' ? t.price : (100 - t.price),
+    created_time: t.create_date,
+  }))
+
+  // Build cost estimates per ticker from buy trades
+  const costByTicker = new Map<string, number>()
+  for (const t of socialTrades) {
+    if (t.taker_action === 'buy') {
+      const cost = t.price * t.count
+      costByTicker.set(t.ticker, (costByTicker.get(t.ticker) || 0) + cost)
+    }
+  }
+
+  // Convert closed holdings → NormalizedOutcome
+  const outcomes: NormalizedOutcome[] = []
+  for (const holding of closedHoldings) {
+    for (const mh of holding.market_holdings) {
+      const estimatedCost = costByTicker.get(mh.market_ticker) || Math.abs(mh.pnl)
+      outcomes.push({
+        ticker: mh.market_ticker,
+        event_ticker: holding.event_ticker,
+        isVoid: false,
+        pnl: mh.pnl,
+        cost: estimatedCost,
+        revenue: estimatedCost + mh.pnl,
+      })
+    }
+  }
+
+  return computeAnalysis(trades, outcomes)
+}
+
+// ── Recommendations (uses authenticated API) ──
 
 export async function getRecommendations(
   credentials: KalshiCredentials,
