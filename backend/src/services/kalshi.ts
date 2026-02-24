@@ -99,40 +99,66 @@ export async function getBalance(credentials: KalshiCredentials) {
   }>(credentials, 'GET', '/portfolio/balance')
 }
 
+type Fill = {
+  fill_id: string
+  trade_id: string
+  order_id: string
+  ticker: string
+  side: 'yes' | 'no'
+  action: 'buy' | 'sell'
+  count: number
+  yes_price: number
+  no_price: number
+  created_time: string
+  is_taker: boolean
+}
+
+type Settlement = {
+  ticker: string
+  event_ticker: string
+  market_result: 'yes' | 'no' | 'void'
+  yes_count: number
+  no_count: number
+  yes_total_cost: number
+  no_total_cost: number
+  revenue: number
+  settled_time: string
+}
+
 export async function getFills(credentials: KalshiCredentials, limit = 200) {
-  return kalshiFetch<{
-    fills: Array<{
-      fill_id: string
-      trade_id: string
-      order_id: string
-      ticker: string
-      side: 'yes' | 'no'
-      action: 'buy' | 'sell'
-      count: number
-      yes_price: number
-      no_price: number
-      created_time: string
-      is_taker: boolean
-    }>
-    cursor: string | null
-  }>(credentials, 'GET', `/portfolio/fills?limit=${limit}`)
+  const allFills: Fill[] = []
+  let cursor: string | null = null
+
+  do {
+    const params = new URLSearchParams({ limit: limit.toString() })
+    if (cursor) params.set('cursor', cursor)
+
+    const page = await kalshiFetch<{ fills: Fill[]; cursor: string | null }>(
+      credentials, 'GET', `/portfolio/fills?${params}`
+    )
+    allFills.push(...page.fills)
+    cursor = page.cursor
+  } while (cursor)
+
+  return { fills: allFills, cursor: null }
 }
 
 export async function getSettlements(credentials: KalshiCredentials, limit = 200) {
-  return kalshiFetch<{
-    settlements: Array<{
-      ticker: string
-      event_ticker: string
-      market_result: 'yes' | 'no' | 'void'
-      yes_count: number
-      no_count: number
-      yes_total_cost: number
-      no_total_cost: number
-      revenue: number
-      settled_time: string
-    }>
-    cursor: string | null
-  }>(credentials, 'GET', `/portfolio/settlements?limit=${limit}`)
+  const allSettlements: Settlement[] = []
+  let cursor: string | null = null
+
+  do {
+    const params = new URLSearchParams({ limit: limit.toString() })
+    if (cursor) params.set('cursor', cursor)
+
+    const page = await kalshiFetch<{ settlements: Settlement[]; cursor: string | null }>(
+      credentials, 'GET', `/portfolio/settlements?${params}`
+    )
+    allSettlements.push(...page.settlements)
+    cursor = page.cursor
+  } while (cursor)
+
+  return { settlements: allSettlements, cursor: null }
 }
 
 export async function getPositions(credentials: KalshiCredentials) {

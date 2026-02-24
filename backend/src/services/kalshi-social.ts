@@ -81,18 +81,47 @@ export async function getSocialMetrics(nickname: string): Promise<SocialMetrics>
 }
 
 export async function getSocialTrades(nickname: string): Promise<SocialTrade[]> {
-  const data = await socialFetch<{ trades: SocialTrade[] }>(
-    `/trades?nickname=${encodeURIComponent(nickname)}`
-  )
-  return data.trades ?? []
+  const allTrades: SocialTrade[] = []
+  let cursor: string | null = null
+
+  do {
+    const params = new URLSearchParams({
+      nickname,
+      limit: '500',
+    })
+    if (cursor) params.set('cursor', cursor)
+
+    const data = await socialFetch<{ trades: SocialTrade[]; cursor?: string | null }>(
+      `/trades?${params}`
+    )
+    allTrades.push(...(data.trades ?? []))
+    cursor = data.cursor ?? null
+  } while (cursor)
+
+  return allTrades
 }
 
 export async function getSocialHoldings(nickname: string, closed: boolean): Promise<SocialHolding[]> {
   try {
-    const data = await socialFetch<{ holdings: SocialHolding[] }>(
-      `/profile/holdings?nickname=${encodeURIComponent(nickname)}&closed_positions=${closed}&limit=100`
-    )
-    return data.holdings ?? []
+    const allHoldings: SocialHolding[] = []
+    let cursor: string | null = null
+
+    do {
+      const params = new URLSearchParams({
+        nickname,
+        closed_positions: String(closed),
+        limit: '500',
+      })
+      if (cursor) params.set('cursor', cursor)
+
+      const data = await socialFetch<{ holdings: SocialHolding[]; cursor?: string | null }>(
+        `/profile/holdings?${params}`
+      )
+      allHoldings.push(...(data.holdings ?? []))
+      cursor = data.cursor ?? null
+    } while (cursor)
+
+    return allHoldings
   } catch {
     // Holdings endpoint may fail — return empty
     return []
