@@ -1,9 +1,9 @@
 import { Hono } from 'hono'
 import { v4 as uuidv4 } from 'uuid'
-import { getProfile, getProfileByUsername, createProfile, updateProfileCache, updateProfileUsername } from '../db'
+import { getProfile, getProfileByUsername, createProfile, updateProfileCache } from '../db'
 import { analyzePersonality, analyzeFromSocial } from '../services/analyzer'
 import { getSocialProfile } from '../services/kalshi-social'
-import { credentialsStore, usernameToProfileId } from './connect'
+import { credentialsStore } from './connect'
 import type { Profile } from '../db'
 
 export const profileRoute = new Hono()
@@ -193,49 +193,3 @@ profileRoute.post('/:id/refresh', async (c) => {
   }
 })
 
-// Set username for a profile
-profileRoute.post('/:id/username', async (c) => {
-  try {
-    const identifier = c.req.param('id')
-    const { username } = await c.req.json<{ username: string }>()
-
-    if (!username || !/^[a-zA-Z0-9_-]{2,30}$/.test(username)) {
-      return c.json({ error: 'Invalid username' }, 400)
-    }
-
-    const profile = resolveProfile(identifier)
-    if (!profile) {
-      return c.json({ error: 'Profile not found' }, 404)
-    }
-
-    // Only owner can set username
-    const credentials = credentialsStore.get(profile.id)
-    if (!credentials) {
-      return c.json({ error: 'Unauthorized' }, 401)
-    }
-
-    // Validate username exists on Kalshi
-    try {
-      const socialProfile = await getSocialProfile(username)
-      if (!socialProfile) {
-        return c.json({ error: 'Username not found on Kalshi. Please check your Kalshi profile username.' }, 404)
-      }
-    } catch {
-      // If social API check fails, allow setting anyway (API might be down)
-    }
-
-    // Check if username is taken by another profile
-    const existing = getProfileByUsername(username)
-    if (existing && existing.id !== profile.id) {
-      return c.json({ error: 'Username already taken' }, 409)
-    }
-
-    updateProfileUsername(profile.id, username)
-    usernameToProfileId.set(username.toLowerCase(), profile.id)
-
-    return c.json({ success: true, username })
-  } catch (error) {
-    console.error('Set username error:', error)
-    return c.json({ error: 'Failed to set username' }, 500)
-  }
-})

@@ -190,21 +190,6 @@ export async function searchProfiles(query: string): Promise<{
   return response.json()
 }
 
-export async function setUsername(profileId: string, username: string): Promise<{ success: boolean; username: string }> {
-  const response = await fetch(`${API_BASE}/profile/${profileId}/username`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username }),
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to set username')
-  }
-
-  return response.json()
-}
-
 // Shield types
 export interface PositionData {
   ticker: string

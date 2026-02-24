@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Input } from '@/components/ui/input'
-import { searchProfiles, setUsername, type SearchResult } from '@/lib/api'
+import { searchProfiles, type SearchResult } from '@/lib/api'
 
 interface UserSidebarProps {
   open: boolean
@@ -10,55 +10,14 @@ interface UserSidebarProps {
   profileId?: string
   isOwner?: boolean
   balanceDollars?: string
-  onUsernameSet?: (newUsername: string) => void
 }
 
-export function UserSidebar({ open, onClose, username, profileId, isOwner, balanceDollars, onUsernameSet }: UserSidebarProps) {
+export function UserSidebar({ open, onClose, username, profileId, isOwner, balanceDollars }: UserSidebarProps) {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [searching, setSearching] = useState(false)
   const [notFound, setNotFound] = useState(false)
-
-  // Username setup state
-  const isUUID = /^[a-f0-9-]{36}$/i.test(username)
-  const needsUsername = isOwner && isUUID
-  const [profileUrlInput, setProfileUrlInput] = useState('')
-  const [settingUsername, setSettingUsername] = useState(false)
-  const [usernameError, setUsernameError] = useState('')
-
-  const parseUsernameFromUrl = (input: string): string | null => {
-    const trimmed = input.trim()
-    if (!trimmed) return null
-    // Extract from URL like https://demo.kalshi.co/ideas/profiles/kooroot
-    const match = trimmed.match(/\/profiles\/([a-zA-Z0-9_-]+)\/?$/)
-    if (match) return match[1]
-    // Plain username
-    if (/^[a-zA-Z0-9_-]{2,30}$/.test(trimmed)) return trimmed
-    return null
-  }
-
-  const handleSetUsername = async () => {
-    const parsed = parseUsernameFromUrl(profileUrlInput)
-    if (!parsed) {
-      setUsernameError('Invalid URL or username')
-      return
-    }
-    if (!profileId) return
-
-    setSettingUsername(true)
-    setUsernameError('')
-    try {
-      await setUsername(profileId, parsed)
-      onUsernameSet?.(parsed)
-      onClose()
-      navigate({ to: '/scout/$username', params: { username: parsed } })
-    } catch (e) {
-      setUsernameError(e instanceof Error ? e.message : 'Failed to set username')
-    } finally {
-      setSettingUsername(false)
-    }
-  }
 
   const handleSearch = async () => {
     if (!query.trim() || query.trim().length < 2) return
@@ -133,36 +92,6 @@ export function UserSidebar({ open, onClose, username, profileId, isOwner, balan
             <div className="w-2 h-2 rounded-full bg-terminal-green shadow-[0_0_8px_rgba(0,255,157,0.6)]" />
           </div>
         </div>
-
-        {/* Set Username (shown when username is UUID) */}
-        {needsUsername && (
-          <div className="p-5 border-b border-white/5 space-y-3">
-            <div className="text-[10px] text-terminal-yellow font-mono uppercase tracking-widest flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-terminal-yellow animate-pulse" />
-              Set Username
-            </div>
-            <div className="text-terminal-dim text-[11px] font-mono leading-relaxed">
-              Paste your Kalshi profile URL to enable search.
-            </div>
-            <Input
-              placeholder="https://kalshi.co/ideas/profiles/..."
-              value={profileUrlInput}
-              onChange={(e) => { setProfileUrlInput(e.target.value); setUsernameError('') }}
-              onKeyDown={(e) => e.key === 'Enter' && handleSetUsername()}
-              className="h-9 bg-black/60 border-terminal-yellow/30 text-white placeholder:text-zinc-600 focus:border-terminal-yellow focus:ring-1 focus:ring-terminal-yellow/50 rounded font-mono text-xs tracking-wider"
-            />
-            <button
-              onClick={handleSetUsername}
-              disabled={!profileUrlInput.trim() || settingUsername}
-              className="w-full h-8 rounded border border-terminal-yellow/40 bg-terminal-yellow/10 text-terminal-yellow text-[10px] font-bold uppercase tracking-wider hover:bg-terminal-yellow/20 transition-colors disabled:opacity-30"
-            >
-              {settingUsername ? '...' : 'SET USERNAME'}
-            </button>
-            {usernameError && (
-              <div className="text-terminal-red text-[10px] font-mono">{usernameError}</div>
-            )}
-          </div>
-        )}
 
         {/* Search */}
         <div className="p-5 border-b border-white/5 space-y-3">

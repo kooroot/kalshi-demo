@@ -198,7 +198,6 @@ export function ProfilePage() {
         profileId={profileQuery.data?.profileId}
         isOwner={isOwner}
         balanceDollars={balanceQuery.data?.balanceDollars}
-        onUsernameSet={() => profileQuery.refetch()}
       />
 
       <main className="pt-24 pb-12 px-4 md:px-6 max-w-7xl mx-auto space-y-8">
