@@ -110,7 +110,7 @@ export async function getSocialHoldings(nickname: string, closed: boolean): Prom
       const params = new URLSearchParams({
         nickname,
         closed_positions: String(closed),
-        limit: '500',
+        limit: '100', // API max is 100 for holdings
       })
       if (cursor) params.set('cursor', cursor)
 

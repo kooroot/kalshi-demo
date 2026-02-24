@@ -569,17 +569,20 @@ export async function analyzeFromSocial(nickname: string): Promise<PersonalityAn
   }
 
   // Convert closed holdings → NormalizedOutcome
+  // NOTE: Social API pnl is in centi-cents (÷100 to get cents)
   const outcomes: NormalizedOutcome[] = []
   for (const holding of closedHoldings) {
     for (const mh of holding.market_holdings) {
-      const estimatedCost = costByTicker.get(mh.market_ticker) || Math.abs(mh.pnl)
+      const pnlCents = Math.round(mh.pnl / 100)
+      const tradeCost = costByTicker.get(mh.market_ticker)
+      const estimatedCost = tradeCost ?? Math.abs(pnlCents)
       outcomes.push({
         ticker: mh.market_ticker,
         event_ticker: holding.event_ticker,
         isVoid: false,
-        pnl: mh.pnl,
+        pnl: pnlCents,
         cost: estimatedCost,
-        revenue: estimatedCost + mh.pnl,
+        revenue: Math.max(0, estimatedCost + pnlCents),
       })
     }
   }
