@@ -33,6 +33,64 @@ export interface PersonalityAnalysis {
     emoji: string
     description: string
   }
+  categoryPerformance?: CategoryPerformance[]
+  pnlAnalysis?: PnlAnalysis
+  temporal?: TemporalAnalysis
+  sideBias?: SideBias
+  traits?: TraitBadge[]
+  scores?: PersonalityScores
+}
+
+export interface CategoryPerformance {
+  category: string
+  wins: number
+  losses: number
+  winRate: number
+  totalPnl: number
+  avgPnl: number
+  roi: number
+  tradeCount: number
+}
+
+export interface PnlAnalysis {
+  avgWinSize: number
+  avgLossSize: number
+  profitFactor: number
+  biggestWin: number
+  biggestLoss: number
+  expectancy: number
+}
+
+export interface TemporalAnalysis {
+  recentWinRate: number
+  historicalWinRate: number
+  recentRoi: number
+  historicalRoi: number
+  trend: 'improving' | 'declining' | 'stable'
+  currentStreak: { type: 'win' | 'loss'; count: number }
+  longestWinStreak: number
+  longestLossStreak: number
+}
+
+export interface SideBias {
+  yesBuyCount: number
+  noBuyCount: number
+  yesBuyPercentage: number
+  bias: 'yes_heavy' | 'no_heavy' | 'balanced'
+}
+
+export interface TraitBadge {
+  name: string
+  emoji: string
+}
+
+export interface PersonalityScores {
+  riskAppetite: number
+  diversification: number
+  frequency: number
+  skill: number
+  trend: number
+  conviction: number
 }
 
 export interface MarketRecommendation {

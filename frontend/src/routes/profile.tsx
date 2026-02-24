@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { getProfile, getRecommendations, getBalance, executeRecommendOrder, type PersonalityAnalysis, type MarketRecommendation } from '@/lib/api'
+import { getProfile, getRecommendations, getBalance, executeRecommendOrder, type PersonalityAnalysis, type MarketRecommendation, type CategoryPerformance, type PnlAnalysis, type TemporalAnalysis } from '@/lib/api'
 import { UserSidebar } from '@/components/user-sidebar'
 import { Activity, ArrowUpRight, ArrowDownRight, Trophy } from 'lucide-react'
 export function ProfilePage() {
@@ -240,9 +240,16 @@ export function ProfilePage() {
         {/* Stats Grid */}
         {analysis && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 opacity-0 animate-fade-in-up stagger-1">
-            <CategoriesPanel categories={analysis.categories} />
+            <CategoryPerformancePanel categories={analysis.categories} categoryPerformance={analysis.categoryPerformance} />
             <RiskPanel riskProfile={analysis.riskProfile} />
-            <PerformancePanel winRate={analysis.winRate} roi={analysis.roi} />
+            <PnlAnalysisPanel winRate={analysis.winRate} roi={analysis.roi} pnlAnalysis={analysis.pnlAnalysis} />
+          </div>
+        )}
+
+        {/* Temporal Panel */}
+        {analysis && (
+          <div className="opacity-0 animate-fade-in-up stagger-1">
+            <TemporalPanel temporal={analysis.temporal} />
           </div>
         )}
 
@@ -313,6 +320,17 @@ function PersonalityHero({ analysis, onShare, onTwitter, copied }: { analysis: P
               <p className="text-terminal-muted text-base md:text-lg max-w-xl leading-relaxed font-light border-l-2 border-terminal-green/30 pl-5 py-1">
                 {analysis.tag.description}
               </p>
+              {/* Trait Badges */}
+              {analysis.traits && analysis.traits.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {analysis.traits.map((trait: { emoji: string; name: string }, i: number) => (
+                    <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-terminal-text hover:border-terminal-green/40 hover:bg-terminal-green/5 transition-all">
+                      <span>{trait.emoji}</span>
+                      <span>{trait.name}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -344,6 +362,9 @@ function PersonalityHero({ analysis, onShare, onTwitter, copied }: { analysis: P
             color={analysis.winRate.percentage >= 50 ? 'green' : 'red'}
             trend={analysis.winRate.percentage >= 50 ? 'up' : 'down'}
             icon={<img src="/icons/activity.png" alt="Win Ratio" className="w-6 h-6 mix-blend-screen object-cover scale-[1.6]" />}
+            badge={analysis.temporal?.currentStreak && analysis.temporal.currentStreak.count >= 3
+              ? `${analysis.temporal.currentStreak.type === 'win' ? '🔥' : '🥶'}${analysis.temporal.currentStreak.count}`
+              : undefined}
           />
           <StatBlock
             label="NET ROI"
@@ -351,6 +372,7 @@ function PersonalityHero({ analysis, onShare, onTwitter, copied }: { analysis: P
             color={analysis.roi.percentage >= 0 ? 'green' : 'red'}
             trend={analysis.roi.percentage >= 0 ? 'up-right' : 'down-right'}
             icon={<img src="/icons/wallet.png" alt="ROI" className="w-6 h-6 mix-blend-screen object-cover scale-[1.6]" />}
+            badge={analysis.temporal?.trend === 'improving' ? '📈' : analysis.temporal?.trend === 'declining' ? '📉' : undefined}
           />
           <StatBlock
             label="TOTAL EXECUTION"
@@ -373,7 +395,7 @@ function PersonalityHero({ analysis, onShare, onTwitter, copied }: { analysis: P
   )
 }
 
-function StatBlock({ label, value, color, trend, icon }: { label: string; value: string; color: string; trend?: string; icon?: React.ReactNode }) {
+function StatBlock({ label, value, color, trend, icon, badge }: { label: string; value: string; color: string; trend?: string; icon?: React.ReactNode; badge?: string }) {
   const styles: Record<string, string> = {
     green: 'border-terminal-green/20 group-hover:border-terminal-green/50 bg-terminal-green/5 shadow-[0_0_15px_rgba(0,255,157,0.05)] text-terminal-green hover:shadow-terminal-green/20 group-hover:text-terminal-green',
     red: 'border-terminal-red/20 group-hover:border-terminal-red/50 bg-terminal-red/5 shadow-[0_0_15px_rgba(255,51,102,0.05)] text-terminal-red hover:shadow-terminal-red/20 group-hover:text-terminal-red',
@@ -401,14 +423,24 @@ function StatBlock({ label, value, color, trend, icon }: { label: string; value:
       <div className="text-2xl md:text-3xl font-black font-mono relative z-10 drop-shadow-[0_0_12px_currentColor] text-current flex items-center gap-2">
         {value}
         {trend && trendIcons[trend]}
+        {badge && <span className="text-sm ml-1">{badge}</span>}
       </div>
     </div>
   )
 }
 
-function CategoriesPanel({ categories }: { categories: PersonalityAnalysis['categories'] }) {
+function CategoryPerformancePanel({ categories, categoryPerformance }: { categories: PersonalityAnalysis['categories']; categoryPerformance?: CategoryPerformance[] }) {
   const colors = ['bg-terminal-green', 'bg-terminal-cyan', 'bg-terminal-blue', 'bg-terminal-purple', 'bg-terminal-orange']
   const colorHex = ['rgba(16,185,129', 'rgba(0,240,255', 'rgba(59,130,246', 'rgba(168,85,247', 'rgba(249,115,22']
+
+  // Merge category data with performance data
+  const perfMap = new Map(categoryPerformance?.map(cp => [cp.category, cp]) || [])
+
+  // Find best/worst categories by PnL
+  const bestCat = categoryPerformance?.[0]?.category // already sorted by totalPnl desc
+  const worstCat = categoryPerformance && categoryPerformance.length > 1
+    ? categoryPerformance[categoryPerformance.length - 1].category
+    : undefined
 
   return (
     <div className="terminal-glass-panel p-6 rounded-xl border border-terminal-border bg-gradient-to-br from-white/[0.02] to-transparent hover:border-terminal-blue/40 transition-all shadow-lg hover:shadow-terminal-blue/10 relative overflow-hidden group">
@@ -416,30 +448,51 @@ function CategoriesPanel({ categories }: { categories: PersonalityAnalysis['cate
 
       <div className="flex items-center gap-2 mb-6">
         <span className="text-terminal-blue text-xs animate-pulse">●</span>
-        <span className="text-white text-xs uppercase tracking-widest font-bold">Sector_Allocation</span>
+        <span className="text-white text-xs uppercase tracking-widest font-bold">Sector_Performance</span>
       </div>
 
       {categories.length === 0 ? (
         <div className="text-terminal-dim text-sm italic">Insufficient data for sector analysis</div>
       ) : (
-        <div className="space-y-5">
-          {categories.slice(0, 5).map((cat, i) => (
-            <div key={i} className="space-y-2 group/bar">
-              <div className="flex justify-between text-[11px] items-end">
-                <span className="text-terminal-text group-hover/bar:text-white transition-colors">{cat.name}</span>
-                <span className="font-mono text-terminal-muted group-hover/bar:text-terminal-text transition-colors text-[10px]">{cat.percentage}%</span>
+        <div className="space-y-4">
+          {categories.slice(0, 5).map((cat, i) => {
+            const perf = perfMap.get(cat.name)
+            const isBest = cat.name === bestCat
+            const isWorst = cat.name === worstCat && (perf?.totalPnl ?? 0) < 0
+            return (
+              <div key={i} className="space-y-1.5 group/bar">
+                <div className="flex justify-between text-[11px] items-center">
+                  <span className="text-terminal-text group-hover/bar:text-white transition-colors flex items-center gap-1.5">
+                    {isBest && <span title="Best category">🏆</span>}
+                    {isWorst && <span title="Worst category">⚠️</span>}
+                    {cat.name}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {perf && (
+                      <span className={`font-mono text-[9px] px-1.5 py-0.5 rounded border ${perf.winRate >= 50 ? 'text-terminal-green border-terminal-green/20 bg-terminal-green/5' : 'text-terminal-red border-terminal-red/20 bg-terminal-red/5'}`}>
+                        {perf.winRate}% WR
+                      </span>
+                    )}
+                    {perf && (
+                      <span className={`font-mono text-[9px] ${perf.totalPnl >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
+                        {perf.totalPnl >= 0 ? '+' : ''}{(perf.totalPnl / 100).toFixed(2)}
+                      </span>
+                    )}
+                    <span className="font-mono text-terminal-muted group-hover/bar:text-terminal-text transition-colors text-[10px]">{cat.percentage}%</span>
+                  </div>
+                </div>
+                <div className="h-1.5 bg-black/50 rounded-full overflow-hidden border border-white/5">
+                  <div
+                    className={`h-full ${colors[i % colors.length]} rounded-full transition-all duration-1000 group-hover/bar:brightness-125`}
+                    style={{
+                      width: `${cat.percentage}%`,
+                      boxShadow: `0 0 10px ${colorHex[i % colorHex.length]}, 0.5)`
+                    }}
+                  />
+                </div>
               </div>
-              <div className="h-1.5 bg-black/50 rounded-full overflow-hidden border border-white/5">
-                <div
-                  className={`h-full ${colors[i % colors.length]} rounded-full transition-all duration-1000 group-hover/bar:brightness-125`}
-                  style={{
-                    width: `${cat.percentage}%`,
-                    boxShadow: `0 0 10px ${colorHex[i % colorHex.length]}, 0.5)`
-                  }}
-                />
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
@@ -496,7 +549,7 @@ function RiskPanel({ riskProfile }: { riskProfile: PersonalityAnalysis['riskProf
   )
 }
 
-function PerformancePanel({ winRate, roi }: { winRate: PersonalityAnalysis['winRate']; roi: PersonalityAnalysis['roi'] }) {
+function PnlAnalysisPanel({ winRate, roi, pnlAnalysis }: { winRate: PersonalityAnalysis['winRate']; roi: PersonalityAnalysis['roi']; pnlAnalysis?: PnlAnalysis }) {
   const pnl = roi.totalRevenue - roi.totalCost
   const pnlFormatted = (pnl / 100).toFixed(2)
 
@@ -506,32 +559,157 @@ function PerformancePanel({ winRate, roi }: { winRate: PersonalityAnalysis['winR
 
       <div className="flex items-center gap-2 mb-6 relative z-10">
         <span className="text-terminal-green text-xs animate-pulse">●</span>
-        <span className="text-white text-xs uppercase tracking-widest font-bold">Metrics</span>
+        <span className="text-white text-xs uppercase tracking-widest font-bold">PnL_Analysis</span>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 relative z-10">
-        <div className="bg-black/60 rounded-lg p-4 text-center border border-white/5 shadow-inner">
-          <div className="text-terminal-green text-2xl font-black font-mono drop-shadow-[0_0_8px_rgba(0,255,157,0.3)]">{winRate.wins}</div>
-          <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mt-1.5 flex justify-center items-center gap-1.5"><Trophy className="w-3 h-3 text-terminal-green opacity-50" /> Wins</div>
+      {/* Profit Factor + Expectancy hero */}
+      {pnlAnalysis && (
+        <div className="grid grid-cols-2 gap-3 mb-4 relative z-10">
+          <div className="bg-black/60 rounded-lg p-3 text-center border border-white/5 shadow-inner">
+            <div className={`text-2xl font-black font-mono drop-shadow-[0_0_8px_currentColor] ${pnlAnalysis.profitFactor >= 1 ? 'text-terminal-green' : 'text-terminal-red'}`}>
+              {pnlAnalysis.profitFactor.toFixed(2)}
+            </div>
+            <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mt-1">Profit Factor</div>
+          </div>
+          <div className="bg-black/60 rounded-lg p-3 text-center border border-white/5 shadow-inner">
+            <div className={`text-2xl font-black font-mono drop-shadow-[0_0_8px_currentColor] ${pnlAnalysis.expectancy >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
+              {pnlAnalysis.expectancy >= 0 ? '+' : ''}{(pnlAnalysis.expectancy / 100).toFixed(2)}
+            </div>
+            <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mt-1">$/Trade</div>
+          </div>
         </div>
-        <div className="bg-black/60 rounded-lg p-4 text-center border border-white/5 shadow-inner">
-          <div className="text-terminal-red text-2xl font-black font-mono drop-shadow-[0_0_8px_rgba(255,51,102,0.3)]">{winRate.losses}</div>
-          <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mt-1.5 flex justify-center items-center gap-1.5"><ArrowDownRight className="w-3 h-3 text-terminal-red opacity-50" /> Losses</div>
+      )}
+
+      {/* Wins / Losses */}
+      <div className="grid grid-cols-2 gap-3 relative z-10">
+        <div className="bg-black/60 rounded-lg p-3 text-center border border-white/5 shadow-inner">
+          <div className="text-terminal-green text-xl font-black font-mono drop-shadow-[0_0_8px_rgba(0,255,157,0.3)]">{winRate.wins}</div>
+          <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mt-1 flex justify-center items-center gap-1"><Trophy className="w-3 h-3 text-terminal-green opacity-50" /> Wins</div>
+        </div>
+        <div className="bg-black/60 rounded-lg p-3 text-center border border-white/5 shadow-inner">
+          <div className="text-terminal-red text-xl font-black font-mono drop-shadow-[0_0_8px_rgba(255,51,102,0.3)]">{winRate.losses}</div>
+          <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mt-1 flex justify-center items-center gap-1"><ArrowDownRight className="w-3 h-3 text-terminal-red opacity-50" /> Losses</div>
         </div>
       </div>
 
-      <div className="mt-5 pt-4 border-t border-white/5 relative z-10 space-y-3">
-        <div className="flex justify-between items-end mb-1">
+      <div className="mt-4 pt-3 border-t border-white/5 relative z-10 space-y-2">
+        {pnlAnalysis && (
+          <div className="flex justify-between items-center text-[10px]">
+            <span className="text-zinc-500 uppercase tracking-widest font-bold">Biggest Win / Loss</span>
+            <span className="font-mono">
+              <span className="text-terminal-green">+${(pnlAnalysis.biggestWin / 100).toFixed(2)}</span>
+              <span className="text-terminal-dim mx-1">/</span>
+              <span className="text-terminal-red">-${(pnlAnalysis.biggestLoss / 100).toFixed(2)}</span>
+            </span>
+          </div>
+        )}
+        <div className="flex justify-between items-center">
           <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Net PnL</span>
-          <span className={`text-lg font-bold font-mono ${pnl >= 0 ? 'text-terminal-green' : 'text-white'}`}>
+          <span className={`text-sm font-bold font-mono ${pnl >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
             {pnl >= 0 ? '+' : ''}${pnlFormatted}
           </span>
         </div>
-        <div className="flex justify-between items-end">
-          <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Return on Invst.</span>
+        <div className="flex justify-between items-center">
+          <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">ROI</span>
           <span className={`text-[11px] font-mono px-2 py-0.5 rounded bg-black border ${roi.percentage >= 0 ? 'text-terminal-green border-terminal-green/30' : 'text-terminal-red border-terminal-red/30'}`}>
             {roi.percentage >= 0 ? '+' : ''}{roi.percentage}%
           </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function TemporalPanel({ temporal }: { temporal?: TemporalAnalysis }) {
+  if (!temporal) return null
+
+  const trendConfig = {
+    improving: { label: 'IMPROVING', color: 'text-terminal-green', bg: 'bg-terminal-green/10', border: 'border-terminal-green/30', glow: 'shadow-[0_0_15px_rgba(0,255,157,0.1)]' },
+    declining: { label: 'DECLINING', color: 'text-terminal-red', bg: 'bg-terminal-red/10', border: 'border-terminal-red/30', glow: 'shadow-[0_0_15px_rgba(248,81,73,0.1)]' },
+    stable: { label: 'STABLE', color: 'text-terminal-yellow', bg: 'bg-terminal-yellow/10', border: 'border-terminal-yellow/30', glow: 'shadow-[0_0_15px_rgba(245,158,11,0.1)]' },
+  }
+  const tc = trendConfig[temporal.trend]
+
+  const maxWR = Math.max(temporal.recentWinRate, temporal.historicalWinRate, 1)
+
+  return (
+    <div className={`terminal-glass-panel p-6 rounded-xl border border-terminal-border bg-gradient-to-br from-white/[0.02] to-transparent hover:border-terminal-cyan/40 transition-all shadow-lg hover:shadow-terminal-cyan/10 relative overflow-hidden group`}>
+      <div className="absolute top-0 right-0 w-48 h-48 bg-terminal-cyan/5 rounded-full blur-3xl group-hover:bg-terminal-cyan/10 transition-all duration-700 pointer-events-none" />
+
+      <div className="flex items-center justify-between mb-6 relative z-10">
+        <div className="flex items-center gap-2">
+          <span className="text-terminal-cyan text-xs animate-pulse">●</span>
+          <span className="text-white text-xs uppercase tracking-widest font-bold">Temporal_Analysis</span>
+        </div>
+        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${tc.color} ${tc.bg} ${tc.border} ${tc.glow}`}>
+          {tc.label}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+        {/* Win Rate Comparison */}
+        <div className="space-y-3">
+          <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-2">Win Rate Comparison</div>
+          <div className="space-y-2">
+            <div>
+              <div className="flex justify-between text-[10px] mb-1">
+                <span className="text-terminal-muted">Historical (75%)</span>
+                <span className="text-terminal-text font-mono">{temporal.historicalWinRate}%</span>
+              </div>
+              <div className="h-2 bg-black/50 rounded-full overflow-hidden border border-white/5">
+                <div className="h-full bg-terminal-dim rounded-full transition-all duration-1000" style={{ width: `${(temporal.historicalWinRate / maxWR) * 100}%` }} />
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-[10px] mb-1">
+                <span className="text-terminal-muted">Recent (25%)</span>
+                <span className={`font-mono ${temporal.recentWinRate >= temporal.historicalWinRate ? 'text-terminal-green' : 'text-terminal-red'}`}>{temporal.recentWinRate}%</span>
+              </div>
+              <div className="h-2 bg-black/50 rounded-full overflow-hidden border border-white/5">
+                <div className={`h-full rounded-full transition-all duration-1000 ${temporal.recentWinRate >= temporal.historicalWinRate ? 'bg-terminal-green' : 'bg-terminal-red'}`} style={{ width: `${(temporal.recentWinRate / maxWR) * 100}%` }} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ROI Comparison */}
+        <div className="space-y-3">
+          <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-2">ROI Comparison</div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-black/60 rounded-lg p-3 text-center border border-white/5">
+              <div className={`text-lg font-black font-mono ${temporal.historicalRoi >= 0 ? 'text-terminal-text' : 'text-terminal-red'}`}>
+                {temporal.historicalRoi >= 0 ? '+' : ''}{temporal.historicalRoi}%
+              </div>
+              <div className="text-[9px] text-zinc-500 uppercase tracking-widest mt-1">Historical</div>
+            </div>
+            <div className="bg-black/60 rounded-lg p-3 text-center border border-white/5">
+              <div className={`text-lg font-black font-mono ${temporal.recentRoi >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
+                {temporal.recentRoi >= 0 ? '+' : ''}{temporal.recentRoi}%
+              </div>
+              <div className="text-[9px] text-zinc-500 uppercase tracking-widest mt-1">Recent</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Streaks */}
+        <div className="space-y-3">
+          <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-2">Streaks</div>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center bg-black/40 rounded-lg px-3 py-2 border border-white/5">
+              <span className="text-[10px] text-terminal-muted uppercase tracking-wider">Current</span>
+              <span className={`font-mono text-sm font-bold ${temporal.currentStreak.type === 'win' ? 'text-terminal-green' : 'text-terminal-red'}`}>
+                {temporal.currentStreak.type === 'win' ? '🔥' : '🥶'} {temporal.currentStreak.count}{temporal.currentStreak.type === 'win' ? 'W' : 'L'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center bg-black/40 rounded-lg px-3 py-2 border border-white/5">
+              <span className="text-[10px] text-terminal-muted uppercase tracking-wider">Best Win Streak</span>
+              <span className="font-mono text-sm font-bold text-terminal-green">{temporal.longestWinStreak}W</span>
+            </div>
+            <div className="flex justify-between items-center bg-black/40 rounded-lg px-3 py-2 border border-white/5">
+              <span className="text-[10px] text-terminal-muted uppercase tracking-wider">Worst Loss Streak</span>
+              <span className="font-mono text-sm font-bold text-terminal-red">{temporal.longestLossStreak}L</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
