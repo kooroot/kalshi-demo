@@ -144,6 +144,7 @@ export function ProfilePage() {
           </div>
           <div className="h-4 w-px bg-white/10 mx-2" />
           <div className="flex items-center gap-2">
+            <img src="/icon.png" alt="Shield & Scout" className="w-6 h-6 drop-shadow-[0_0_8px_rgba(0,240,255,0.4)]" />
             <span className="text-terminal-blue text-xs font-black tracking-[0.15em]">SHIELD</span>
             <span className="text-terminal-dim text-[10px] font-light">&</span>
             <span className="text-terminal-green text-xs font-black tracking-[0.15em]">SCOUT</span>
@@ -342,26 +343,26 @@ function PersonalityHero({ analysis, onShare, onTwitter, copied }: { analysis: P
             value={`${analysis.winRate.percentage}%`}
             color={analysis.winRate.percentage >= 50 ? 'green' : 'red'}
             trend={analysis.winRate.percentage >= 50 ? 'up' : 'down'}
-            icon={<img src="/icons/activity_icon_v2_1771836248302.png" alt="Win Ratio" className="w-6 h-6 mix-blend-screen object-cover scale-[1.6]" />}
+            icon={<img src="/icons/activity.png" alt="Win Ratio" className="w-6 h-6 mix-blend-screen object-cover scale-[1.6]" />}
           />
           <StatBlock
             label="NET ROI"
             value={`${analysis.roi.percentage >= 0 ? '+' : ''}${analysis.roi.percentage}%`}
             color={analysis.roi.percentage >= 0 ? 'green' : 'red'}
             trend={analysis.roi.percentage >= 0 ? 'up-right' : 'down-right'}
-            icon={<img src="/icons/wallet_icon_v2_1771836274046.png" alt="ROI" className="w-6 h-6 mix-blend-screen object-cover scale-[1.6]" />}
+            icon={<img src="/icons/wallet.png" alt="ROI" className="w-6 h-6 mix-blend-screen object-cover scale-[1.6]" />}
           />
           <StatBlock
             label="TOTAL EXECUTION"
             value={analysis.frequency.totalTrades.toString()}
             color="blue"
-            icon={<img src="/icons/scout_icon_v2_1771836226427.png" alt="Execution" className="w-6 h-6 mix-blend-screen object-cover scale-[1.6]" />}
+            icon={<img src="/icons/scout.png" alt="Execution" className="w-6 h-6 mix-blend-screen object-cover scale-[1.6]" />}
           />
           <StatBlock
             label="VELOCITY (DAY)"
             value={analysis.frequency.tradesPerDay.toString()}
             color="cyan"
-            icon={<img src="/icons/activity_icon_v2_1771836248302.png" alt="Velocity" className="w-6 h-6 mix-blend-screen object-cover scale-[1.6]" />}
+            icon={<img src="/icons/activity.png" alt="Velocity" className="w-6 h-6 mix-blend-screen object-cover scale-[1.6]" />}
           />
         </div>
       </div>

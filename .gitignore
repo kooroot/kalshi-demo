@@ -35,6 +35,8 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Screenshots
 *.png
+# Allow public assets
+!frontend/public/**/*.png
 
 # Database
 *.db

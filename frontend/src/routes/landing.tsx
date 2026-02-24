@@ -163,6 +163,9 @@ export function LandingPage() {
         <div className="w-full max-w-xl space-y-10">
           {/* Logo Section */}
           <div className="text-center opacity-0 animate-fade-in-up">
+            <div className="flex justify-center mb-4">
+              <img src="/icon.png" alt="Shield & Scout" className="w-20 h-20 md:w-24 md:h-24 drop-shadow-[0_0_25px_rgba(0,240,255,0.3)]" />
+            </div>
             <h1 className="text-5xl md:text-7xl font-black tracking-tighter hover-glitch cursor-default transition-all duration-300 drop-shadow-2xl">
               <span className="text-terminal-blue text-glow">SHIELD</span>
               <span className="text-terminal-dim opacity-50 px-2 font-light text-4xl">
@@ -384,7 +387,7 @@ export function LandingPage() {
               <div className="absolute -top-10 -right-10 w-32 h-32 bg-terminal-green/10 rounded-full blur-3xl group-hover:bg-terminal-green/20 transition-all duration-700" />
               <div className="flex items-start gap-4 mb-3 relative z-10">
                 <div className="w-10 h-10 p-0 rounded border border-terminal-green/30 overflow-hidden flex items-center justify-center bg-black/60">
-                  <img src="/icons/activity_icon_v2_1771836248302.png" alt="Activity Scanner" className="w-24 h-24 object-cover scale-150 mix-blend-screen" />
+                  <img src="/icons/activity.png" alt="Activity Scanner" className="w-24 h-24 object-cover scale-150 mix-blend-screen" />
                 </div>
                 <div>
                   <h3 className="text-white font-bold text-sm tracking-widest uppercase flex items-center gap-2">
@@ -403,7 +406,7 @@ export function LandingPage() {
               <div className="absolute -top-10 -right-10 w-32 h-32 bg-terminal-blue/10 rounded-full blur-3xl group-hover:bg-terminal-blue/20 transition-all duration-700" />
               <div className="flex items-start gap-4 mb-3 relative z-10">
                 <div className="w-10 h-10 p-0 rounded border border-terminal-blue/30 overflow-hidden flex items-center justify-center bg-black/60">
-                  <img src="/icons/shield_icon_v2_1771836304980.png" alt="Shield Monitor" className="w-24 h-24 object-cover scale-125 mix-blend-screen" />
+                  <img src="/icons/shield.png" alt="Shield Monitor" className="w-24 h-24 object-cover scale-125 mix-blend-screen" />
                 </div>
                 <div>
                   <h3 className="text-white font-bold text-sm tracking-widest uppercase flex items-center gap-2">

@@ -54,6 +54,7 @@ export function DashboardPage() {
           </div>
           <div className="h-4 w-px bg-white/10 mx-2" />
           <div className="flex items-center gap-2">
+            <img src="/icon.png" alt="Shield & Scout" className="w-6 h-6 drop-shadow-[0_0_8px_rgba(0,240,255,0.4)]" />
             <span className="text-terminal-blue text-xs font-black tracking-[0.15em]">SHIELD</span>
             <span className="text-terminal-dim text-[10px] font-light">&</span>
             <span className="text-terminal-green text-xs font-black tracking-[0.15em]">SCOUT</span>
@@ -171,25 +172,25 @@ function PortfolioOverview({ risk, balance }: { risk: PortfolioRisk; balance?: B
         label="TOTAL EXPOSURE"
         value={`$${(risk.totalExposure / 100).toFixed(2)}`}
         color="cyan"
-        icon={<img src="/icons/scout_icon_v2_1771836226427.png" alt="Exposure" className="w-5 h-5 mix-blend-screen opacity-90 object-cover scale-150 drop-shadow-[0_0_8px_rgba(0,240,255,0.8)]" />}
+        icon={<img src="/icons/scout.png" alt="Exposure" className="w-5 h-5 mix-blend-screen opacity-90 object-cover scale-150 drop-shadow-[0_0_8px_rgba(0,240,255,0.8)]" />}
       />
       <OverviewStat
         label="POSITIONS"
         value={risk.positions.length.toString()}
         color="blue"
-        icon={<img src="/icons/wallet_icon_v2_1771836274046.png" alt="PnL" className="w-5 h-5 mix-blend-screen opacity-90 object-cover scale-[1.7] drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]" />}
+        icon={<img src="/icons/wallet.png" alt="PnL" className="w-5 h-5 mix-blend-screen opacity-90 object-cover scale-[1.7] drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]" />}
       />
       <OverviewStat
         label="DIRECTION BIAS"
         value={`${risk.directionBias.yes}% YES`}
         color={risk.directionBias.yes > 70 ? 'yellow' : 'green'}
-        icon={<img src="/icons/activity_icon_v2_1771836248302.png" alt="Active Markets" className="w-5 h-5 mix-blend-screen opacity-90 object-cover scale-[1.7] drop-shadow-[0_0_8px_rgba(0,255,157,0.8)]" />}
+        icon={<img src="/icons/activity.png" alt="Active Markets" className="w-5 h-5 mix-blend-screen opacity-90 object-cover scale-[1.7] drop-shadow-[0_0_8px_rgba(0,255,157,0.8)]" />}
       />
       <OverviewStat
         label="AVAILABLE"
         value={balance ? `$${balance.balanceDollars}` : '...'}
         color="green"
-        icon={<img src="/icons/shield_icon_v2_1771836304980.png" alt="Liquidity" className="w-5 h-5 mix-blend-screen opacity-90 object-cover scale-150 drop-shadow-[0_0_8px_rgba(0,255,157,0.8)]" />}
+        icon={<img src="/icons/shield.png" alt="Liquidity" className="w-5 h-5 mix-blend-screen opacity-90 object-cover scale-150 drop-shadow-[0_0_8px_rgba(0,255,157,0.8)]" />}
       />
     </div>
   )
