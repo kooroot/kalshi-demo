@@ -6,6 +6,7 @@ import { profileRoute } from './routes/profile'
 import { recommendRoute } from './routes/recommend'
 import { dashboardRoute } from './routes/dashboard'
 import { searchRoute } from './routes/search'
+import { ogRoute } from './routes/og'
 import { initDB } from './db'
 
 const app = new Hono()
@@ -26,6 +27,7 @@ app.route('/api/profile', profileRoute)
 app.route('/api/recommend', recommendRoute)
 app.route('/api/dashboard', dashboardRoute)
 app.route('/api/search', searchRoute)
+app.route('/api/og', ogRoute)
 
 // Initialize DB and start server
 initDB()

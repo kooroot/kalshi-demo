@@ -58,8 +58,8 @@ export function ProfilePage() {
     if (!analysis) return
     const shareUsername = profileQuery.data?.username || username
     const text = `I'm a "${analysis.tag.name} ${analysis.tag.emoji}" on Kalshi!\nWin rate: ${analysis.winRate.percentage}% | ROI: ${analysis.roi.percentage}%\n\nDiscover your trading personality:`
-    const url = `${window.location.origin}/scout/${shareUsername}`
-    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank')
+    const ogUrl = `http://localhost:3003/api/og/${shareUsername}/meta`
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(ogUrl)}`, '_blank')
   }
 
   if (profileQuery.isLoading) {
@@ -244,7 +244,7 @@ export function ProfilePage() {
         {/* Personality Card - Hero Section */}
         {analysis && (
           <div className="opacity-0 animate-fade-in-up">
-            <PersonalityHero analysis={analysis} onShare={copyShareLink} onTwitter={shareOnTwitter} copied={copied} />
+            <PersonalityHero analysis={analysis} onShare={copyShareLink} onTwitter={shareOnTwitter} copied={copied} username={profileQuery.data?.username || username} />
           </div>
         )}
 
@@ -302,7 +302,7 @@ export function ProfilePage() {
   )
 }
 
-function PersonalityHero({ analysis, onShare, onTwitter, copied }: { analysis: PersonalityAnalysis; onShare: () => void; onTwitter: () => void; copied: boolean }) {
+function PersonalityHero({ analysis, onShare, onTwitter, copied, username }: { analysis: PersonalityAnalysis; onShare: () => void; onTwitter: () => void; copied: boolean; username: string }) {
   const getTagColor = (tag: string) => {
     if (tag.includes('Degen') || tag.includes('High')) return 'text-terminal-red shadow-red'
     if (tag.includes('Safe') || tag.includes('Conservative')) return 'text-terminal-green shadow-green'
@@ -362,6 +362,12 @@ function PersonalityHero({ analysis, onShare, onTwitter, copied }: { analysis: P
               className="h-10 bg-white/5 hover:bg-[#1DA1F2]/10 text-[#1DA1F2] border border-[#1DA1F2]/30 hover:border-[#1DA1F2] text-[10px] uppercase font-bold tracking-wider transition-all"
             >
               Share on X / Twitter
+            </Button>
+            <Button
+              onClick={() => window.open(`http://localhost:3003/api/og/${username}`, '_blank')}
+              className="h-10 bg-white/5 hover:bg-terminal-purple/10 text-terminal-purple border border-terminal-purple/30 hover:border-terminal-purple text-[10px] uppercase font-bold tracking-wider transition-all"
+            >
+              Preview Share Card
             </Button>
           </div>
         </div>
