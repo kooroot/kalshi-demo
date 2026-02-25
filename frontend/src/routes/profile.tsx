@@ -6,7 +6,19 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { getProfile, getRecommendations, getBalance, executeRecommendOrder, type PersonalityAnalysis, type MarketRecommendation, type CategoryPerformance, type PnlAnalysis, type TemporalAnalysis, type PersonalityScores } from '@/lib/api'
 import { UserSidebar } from '@/components/user-sidebar'
-import { Activity, ArrowUpRight, ArrowDownRight, Trophy } from 'lucide-react'
+import { Activity, ArrowUpRight, ArrowDownRight, Trophy, Info } from 'lucide-react'
+
+function Tip({ text, children }: { text: string; children: React.ReactNode }) {
+  return (
+    <span className="relative group/tip inline-flex items-center gap-1 cursor-help">
+      {children}
+      <Info className="w-2.5 h-2.5 opacity-30 group-hover/tip:opacity-70 transition-opacity" />
+      <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 bg-black/95 border border-white/10 rounded text-[10px] text-zinc-300 font-normal normal-case tracking-normal whitespace-nowrap opacity-0 pointer-events-none group-hover/tip:opacity-100 group-hover/tip:pointer-events-auto transition-opacity z-50 shadow-xl max-w-[250px] text-wrap leading-relaxed">
+        {text}
+      </span>
+    </span>
+  )
+}
 export function ProfilePage() {
   const { username } = useParams({ from: '/scout/$username' })
   const navigate = useNavigate()
@@ -358,6 +370,7 @@ function PersonalityHero({ analysis, onShare, onTwitter, copied }: { analysis: P
         <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4 pt-8 border-t border-white/5">
           <StatBlock
             label="WIN RATIO"
+            tooltip="Percentage of settled markets that resulted in a profit"
             value={`${analysis.winRate.percentage}%`}
             color={analysis.winRate.percentage >= 50 ? 'green' : 'red'}
             trend={analysis.winRate.percentage >= 50 ? 'up' : 'down'}
@@ -368,6 +381,7 @@ function PersonalityHero({ analysis, onShare, onTwitter, copied }: { analysis: P
           />
           <StatBlock
             label="NET ROI"
+            tooltip="Return on Investment: (revenue - cost) / cost as a percentage"
             value={`${analysis.roi.percentage >= 0 ? '+' : ''}${analysis.roi.percentage}%`}
             color={analysis.roi.percentage >= 0 ? 'green' : 'red'}
             trend={analysis.roi.percentage >= 0 ? 'up-right' : 'down-right'}
@@ -376,12 +390,14 @@ function PersonalityHero({ analysis, onShare, onTwitter, copied }: { analysis: P
           />
           <StatBlock
             label="TOTAL EXECUTION"
+            tooltip="Total number of individual trade fills executed"
             value={analysis.frequency.totalTrades.toString()}
             color="blue"
             icon={<img src="/icons/scout.png" alt="Execution" className="w-6 h-6 mix-blend-screen object-cover scale-[1.6]" />}
           />
           <StatBlock
             label="VELOCITY (DAY)"
+            tooltip="Average number of trades per active trading day"
             value={analysis.frequency.tradesPerDay.toString()}
             color="cyan"
             icon={<img src="/icons/activity.png" alt="Velocity" className="w-6 h-6 mix-blend-screen object-cover scale-[1.6]" />}
@@ -395,7 +411,7 @@ function PersonalityHero({ analysis, onShare, onTwitter, copied }: { analysis: P
   )
 }
 
-function StatBlock({ label, value, color, trend, icon, badge }: { label: string; value: string; color: string; trend?: string; icon?: React.ReactNode; badge?: string }) {
+function StatBlock({ label, value, color, trend, icon, badge, tooltip }: { label: string; value: string; color: string; trend?: string; icon?: React.ReactNode; badge?: string; tooltip?: string }) {
   const styles: Record<string, string> = {
     green: 'border-terminal-green/20 group-hover:border-terminal-green/50 bg-terminal-green/5 shadow-[0_0_15px_rgba(0,255,157,0.05)] text-terminal-green hover:shadow-terminal-green/20 group-hover:text-terminal-green',
     red: 'border-terminal-red/20 group-hover:border-terminal-red/50 bg-terminal-red/5 shadow-[0_0_15px_rgba(255,51,102,0.05)] text-terminal-red hover:shadow-terminal-red/20 group-hover:text-terminal-red',
@@ -416,7 +432,9 @@ function StatBlock({ label, value, color, trend, icon, badge }: { label: string;
       <div className={`absolute -right-4 -top-4 w-16 h-16 rounded-full blur-2xl opacity-20 group-hover:opacity-40 transition-opacity bg-current`} />
 
       <div className="flex justify-between items-start mb-3 relative z-10">
-        <div className="text-zinc-500 text-[10px] uppercase tracking-widest group-hover:text-current transition-colors font-bold">{label}</div>
+        <div className="text-zinc-500 text-[10px] uppercase tracking-widest group-hover:text-current transition-colors font-bold">
+          {tooltip ? <Tip text={tooltip}>{label}</Tip> : label}
+        </div>
         {icon && <div className="opacity-50 group-hover:opacity-100 transition-opacity bg-black/40 p-1.5 rounded-md border border-white/5">{icon}</div>}
       </div>
 
@@ -448,7 +466,7 @@ function CategoryPerformancePanel({ categories, categoryPerformance }: { categor
 
       <div className="flex items-center gap-2 mb-6">
         <span className="text-terminal-blue text-xs animate-pulse">●</span>
-        <span className="text-white text-xs uppercase tracking-widest font-bold">Sector_Performance</span>
+        <span className="text-white text-xs uppercase tracking-widest font-bold"><Tip text="Trade distribution and win rates across market categories">Sector_Performance</Tip></span>
       </div>
 
       {categories.length === 0 ? (
@@ -509,7 +527,7 @@ function RiskPanel({ riskProfile }: { riskProfile: PersonalityAnalysis['riskProf
 
       <div className="flex items-center gap-2 mb-6 relative z-10">
         <span className={`text-terminal-${glowType} text-xs animate-pulse`}>●</span>
-        <span className="text-white text-xs uppercase tracking-widest font-bold">Risk_Exposure</span>
+        <span className="text-white text-xs uppercase tracking-widest font-bold"><Tip text="Based on entry price distribution: low (&lt;30c), mid (30-70c), high (&gt;70c)">Risk_Exposure</Tip></span>
       </div>
 
       <div className="flex flex-col items-center justify-center py-4 relative">
@@ -542,7 +560,7 @@ function RiskPanel({ riskProfile }: { riskProfile: PersonalityAnalysis['riskProf
       </div>
 
       <div className="flex justify-between items-center text-xs mt-4 pt-4 border-t border-white/5 relative z-10">
-        <span className="text-zinc-500 uppercase tracking-widest font-bold text-[10px] flex items-center gap-2">Avg Entry <Activity className="w-3 h-3" /></span>
+        <span className="text-zinc-500 uppercase tracking-widest font-bold text-[10px] flex items-center gap-2"><Tip text="Average price paid per contract in cents. Lower = higher risk, higher potential reward">Avg Entry</Tip> <Activity className="w-3 h-3" /></span>
         <span className="font-mono text-white bg-black/60 px-2.5 py-1 rounded border border-white/10">{riskProfile.avgEntryPrice}c</span>
       </div>
     </div>
@@ -569,13 +587,13 @@ function PnlAnalysisPanel({ winRate, roi, pnlAnalysis }: { winRate: PersonalityA
             <div className={`text-2xl font-black font-mono drop-shadow-[0_0_8px_currentColor] ${pnlAnalysis.profitFactor >= 1 ? 'text-terminal-green' : 'text-terminal-red'}`}>
               {pnlAnalysis.profitFactor.toFixed(2)}
             </div>
-            <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mt-1">Profit Factor</div>
+            <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mt-1"><Tip text="Total winnings divided by total losses. Above 1.0 means you win more than you lose in dollar terms">Profit Factor</Tip></div>
           </div>
           <div className="bg-black/60 rounded-lg p-3 text-center border border-white/5 shadow-inner">
             <div className={`text-2xl font-black font-mono drop-shadow-[0_0_8px_currentColor] ${pnlAnalysis.expectancy >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
               {pnlAnalysis.expectancy >= 0 ? '+' : ''}{(pnlAnalysis.expectancy / 100).toFixed(2)}
             </div>
-            <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mt-1">$/Trade</div>
+            <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mt-1"><Tip text="Expected profit or loss per trade based on win rate and average win/loss sizes">$/Trade</Tip></div>
           </div>
         </div>
       )}
@@ -595,7 +613,7 @@ function PnlAnalysisPanel({ winRate, roi, pnlAnalysis }: { winRate: PersonalityA
       <div className="mt-4 pt-3 border-t border-white/5 relative z-10 space-y-2">
         {pnlAnalysis && (
           <div className="flex justify-between items-center text-[10px]">
-            <span className="text-zinc-500 uppercase tracking-widest font-bold">Biggest Win / Loss</span>
+            <span className="text-zinc-500 uppercase tracking-widest font-bold"><Tip text="Largest single market profit and loss from settled positions">Biggest Win / Loss</Tip></span>
             <span className="font-mono">
               <span className="text-terminal-green">+${(pnlAnalysis.biggestWin / 100).toFixed(2)}</span>
               <span className="text-terminal-dim mx-1">/</span>
