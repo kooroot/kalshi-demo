@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { getProfile, getRecommendations, getBalance, executeRecommendOrder, type PersonalityAnalysis, type MarketRecommendation, type CategoryPerformance, type PnlAnalysis, type TemporalAnalysis } from '@/lib/api'
+import { getProfile, getRecommendations, getBalance, executeRecommendOrder, type PersonalityAnalysis, type MarketRecommendation, type CategoryPerformance, type PnlAnalysis, type TemporalAnalysis, type PersonalityScores } from '@/lib/api'
 import { UserSidebar } from '@/components/user-sidebar'
 import { Activity, ArrowUpRight, ArrowDownRight, Trophy } from 'lucide-react'
 export function ProfilePage() {
@@ -245,9 +245,10 @@ export function ProfilePage() {
           </div>
         )}
 
-        {/* Temporal Panel */}
+        {/* Radar Chart + Temporal Panel */}
         {analysis && (
-          <div className="opacity-0 animate-fade-in-up stagger-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-0 animate-fade-in-up stagger-1">
+            <RadarChartPanel scores={analysis.scores} />
             <TemporalPanel temporal={analysis.temporal} />
           </div>
         )}
@@ -710,6 +711,110 @@ function TemporalPanel({ temporal }: { temporal?: TemporalAnalysis }) {
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function RadarChartPanel({ scores }: { scores?: PersonalityScores }) {
+  if (!scores) return null
+
+  const axes = [
+    { key: 'riskAppetite', label: 'RISK', value: (scores.riskAppetite + 100) / 2 }, // -100~+100 → 0~100
+    { key: 'diversification', label: 'DIVERSE', value: scores.diversification },
+    { key: 'frequency', label: 'FREQ', value: scores.frequency },
+    { key: 'skill', label: 'SKILL', value: scores.skill },
+    { key: 'trend', label: 'TREND', value: (scores.trend + 100) / 2 }, // -100~+100 → 0~100
+    { key: 'conviction', label: 'CONVICT', value: scores.conviction },
+  ]
+
+  const cx = 140, cy = 140, R = 100
+  const n = axes.length
+
+  const getPoint = (i: number, r: number) => {
+    const angle = (Math.PI * 2 * i) / n - Math.PI / 2
+    return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) }
+  }
+
+  // Grid rings at 25%, 50%, 75%, 100%
+  const rings = [0.25, 0.5, 0.75, 1.0]
+
+  // Data polygon
+  const dataPoints = axes.map((a, i) => getPoint(i, (a.value / 100) * R))
+  const dataPath = dataPoints.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ') + ' Z'
+
+  // Axis lines
+  const axisLines = axes.map((_, i) => getPoint(i, R))
+
+  return (
+    <div className="terminal-glass-panel p-6 rounded-xl border border-terminal-border bg-gradient-to-br from-white/[0.02] to-transparent hover:border-terminal-purple/40 transition-all shadow-lg hover:shadow-terminal-purple/10 relative overflow-hidden group">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-terminal-purple/5 rounded-full blur-3xl group-hover:bg-terminal-purple/10 transition-all duration-700 pointer-events-none" />
+
+      <div className="flex items-center gap-2 mb-4 relative z-10">
+        <span className="text-terminal-purple text-xs animate-pulse">●</span>
+        <span className="text-white text-xs uppercase tracking-widest font-bold">Personality_Radar</span>
+      </div>
+
+      <div className="flex justify-center relative z-10">
+        <svg viewBox="0 0 280 280" className="w-full max-w-[280px]">
+          {/* Grid rings */}
+          {rings.map((r) => {
+            const pts = axes.map((_, i) => getPoint(i, r * R))
+            const path = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ') + ' Z'
+            return <path key={r} d={path} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+          })}
+
+          {/* Axis lines */}
+          {axisLines.map((p, i) => (
+            <line key={i} x1={cx} y1={cy} x2={p.x} y2={p.y} stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+          ))}
+
+          {/* Data fill */}
+          <path d={dataPath} fill="rgba(168,85,247,0.15)" stroke="rgba(168,85,247,0.8)" strokeWidth="2" />
+
+          {/* Data points */}
+          {dataPoints.map((p, i) => (
+            <circle key={i} cx={p.x} cy={p.y} r="4" fill="rgba(168,85,247,1)" stroke="#0d1117" strokeWidth="2" className="drop-shadow-[0_0_6px_rgba(168,85,247,0.8)]" />
+          ))}
+
+          {/* Labels */}
+          {axes.map((a, i) => {
+            const lp = getPoint(i, R + 22)
+            return (
+              <text key={i} x={lp.x} y={lp.y} textAnchor="middle" dominantBaseline="middle" className="fill-zinc-400 text-[9px] font-mono font-bold" style={{ fontSize: '9px' }}>
+                {a.label}
+              </text>
+            )
+          })}
+
+          {/* Value labels on points */}
+          {axes.map((a, i) => {
+            const vp = getPoint(i, (a.value / 100) * R + 14)
+            const raw = i === 0 ? scores.riskAppetite : i === 4 ? scores.trend : a.value
+            return (
+              <text key={`v${i}`} x={vp.x} y={vp.y} textAnchor="middle" dominantBaseline="middle" className="fill-terminal-purple text-[8px] font-mono font-bold" style={{ fontSize: '8px' }}>
+                {Math.round(raw)}
+              </text>
+            )
+          })}
+        </svg>
+      </div>
+
+      {/* Score summary grid */}
+      <div className="grid grid-cols-3 gap-2 mt-4 relative z-10">
+        {[
+          { label: 'Risk Appetite', val: scores.riskAppetite, range: '-100~+100' },
+          { label: 'Diversification', val: scores.diversification, range: '0~100' },
+          { label: 'Frequency', val: scores.frequency, range: '0~100' },
+          { label: 'Skill', val: scores.skill, range: '0~100' },
+          { label: 'Trend', val: scores.trend, range: '-100~+100' },
+          { label: 'Conviction', val: scores.conviction, range: '0~100' },
+        ].map((s) => (
+          <div key={s.label} className="bg-black/40 rounded-lg p-2 text-center border border-white/5">
+            <div className={`text-sm font-black font-mono ${s.val >= 0 ? 'text-terminal-purple' : 'text-terminal-red'}`}>{s.val > 0 ? '+' : ''}{Math.round(s.val)}</div>
+            <div className="text-[8px] text-zinc-500 uppercase tracking-wider mt-0.5">{s.label}</div>
+          </div>
+        ))}
       </div>
     </div>
   )
