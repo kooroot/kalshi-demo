@@ -839,6 +839,9 @@ function RadarChartPanel({ scores }: { scores?: PersonalityScores }) {
 }
 
 function RecommendationsGrid({ recommendations, profileId, isOwner }: { recommendations: MarketRecommendation[]; profileId: string; isOwner: boolean }) {
+  const [categoryFilter, setCategoryFilter] = useState<string>('all')
+  const [sortBy, setSortBy] = useState<'default' | 'price_asc' | 'price_desc' | 'volume'>('default')
+
   if (recommendations.length === 0) {
     return (
       <div className="terminal-glass-panel p-8 text-center rounded-xl">
@@ -847,11 +850,81 @@ function RecommendationsGrid({ recommendations, profileId, isOwner }: { recommen
     )
   }
 
+  // Extract unique categories
+  const categories = Array.from(new Set(recommendations.map(r => r.category).filter(Boolean)))
+
+  // Filter
+  let filtered = categoryFilter === 'all' ? recommendations : recommendations.filter(r => r.category === categoryFilter)
+
+  // Sort
+  if (sortBy === 'price_asc') {
+    filtered = [...filtered].sort((a, b) => parseFloat(a.yesBid.replace('$', '')) - parseFloat(b.yesBid.replace('$', '')))
+  } else if (sortBy === 'price_desc') {
+    filtered = [...filtered].sort((a, b) => parseFloat(b.yesBid.replace('$', '')) - parseFloat(a.yesBid.replace('$', '')))
+  } else if (sortBy === 'volume') {
+    filtered = [...filtered].sort((a, b) => parseInt(b.volume24h.replace(/,/g, '')) - parseInt(a.volume24h.replace(/,/g, '')))
+  }
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {recommendations.map((rec, i) => (
-        <MarketCard key={rec.ticker} recommendation={rec} index={i} profileId={profileId} isOwner={isOwner} />
-      ))}
+    <div className="space-y-4">
+      {/* Filter & Sort Bar */}
+      <div className="flex flex-wrap gap-2 items-center">
+        {/* Category filters */}
+        <button
+          onClick={() => setCategoryFilter('all')}
+          className={`h-7 px-3 rounded text-[10px] font-bold uppercase tracking-wider transition-all border ${
+            categoryFilter === 'all'
+              ? 'bg-terminal-green/15 text-terminal-green border-terminal-green/40'
+              : 'bg-black/30 text-terminal-dim border-white/10 hover:border-white/20 hover:text-terminal-text'
+          }`}
+        >
+          All ({recommendations.length})
+        </button>
+        {categories.map(cat => {
+          const count = recommendations.filter(r => r.category === cat).length
+          return (
+            <button
+              key={cat}
+              onClick={() => setCategoryFilter(categoryFilter === cat ? 'all' : cat)}
+              className={`h-7 px-3 rounded text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                categoryFilter === cat
+                  ? 'bg-terminal-cyan/15 text-terminal-cyan border-terminal-cyan/40'
+                  : 'bg-black/30 text-terminal-dim border-white/10 hover:border-white/20 hover:text-terminal-text'
+              }`}
+            >
+              {cat} ({count})
+            </button>
+          )
+        })}
+
+        {/* Divider */}
+        <div className="h-5 w-px bg-white/10 mx-1" />
+
+        {/* Sort options */}
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+          className="h-7 px-2 rounded text-[10px] font-bold uppercase tracking-wider bg-black/60 text-terminal-dim border border-white/10 hover:border-white/20 cursor-pointer focus:outline-none focus:border-terminal-green/40 transition-all"
+        >
+          <option value="default">Sort: Default</option>
+          <option value="price_asc">Price: Low to High</option>
+          <option value="price_desc">Price: High to Low</option>
+          <option value="volume">Volume: Highest</option>
+        </select>
+      </div>
+
+      {/* Grid */}
+      {filtered.length === 0 ? (
+        <div className="terminal-glass-panel p-8 text-center rounded-xl">
+          <span className="text-terminal-dim font-mono">No markets in this category.</span>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map((rec, i) => (
+            <MarketCard key={rec.ticker} recommendation={rec} index={i} profileId={profileId} isOwner={isOwner} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
