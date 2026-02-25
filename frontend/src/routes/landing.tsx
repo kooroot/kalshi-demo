@@ -244,6 +244,16 @@ export function LandingPage() {
                   No traders found matching "{searchQuery}"
                 </div>
               )}
+
+              <div className="mt-4 pt-4 border-t border-white/5">
+                <Button
+                  onClick={() => navigate({ to: '/compare' })}
+                  variant="outline"
+                  className="w-full h-10 bg-black/40 hover:bg-terminal-cyan/10 text-terminal-cyan border-terminal-cyan/20 hover:border-terminal-cyan/40 text-[10px] uppercase font-bold tracking-widest transition-all"
+                >
+                  Compare Two Traders
+                </Button>
+              </div>
             </div>
           </div>
 

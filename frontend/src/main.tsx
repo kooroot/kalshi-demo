@@ -7,6 +7,7 @@ import './index.css'
 import { LandingPage } from './routes/landing'
 import { ProfilePage } from './routes/profile'
 import { DashboardPage } from './routes/dashboard'
+import { ComparePage } from './routes/compare'
 
 const queryClient = new QueryClient()
 
@@ -31,7 +32,13 @@ const dashboardRoute = createRoute({
   component: DashboardPage,
 })
 
-const routeTree = rootRoute.addChildren([landingRoute, profileRoute, dashboardRoute])
+const compareRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/compare',
+  component: ComparePage,
+})
+
+const routeTree = rootRoute.addChildren([landingRoute, profileRoute, dashboardRoute, compareRoute])
 
 const router = createRouter({ routeTree })
 
