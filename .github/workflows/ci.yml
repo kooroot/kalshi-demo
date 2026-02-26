@@ -1,0 +1,19 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  backend-frontend-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install root deps
+        run: bun install --frozen-lockfile
+      - name: Install frontend deps
+        run: bun run deps:frontend
+      - name: Build frontend
+        run: bun run build:frontend
