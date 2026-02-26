@@ -12,7 +12,7 @@ interface UserSidebarProps {
   balanceDollars?: string
 }
 
-export function UserSidebar({ open, onClose, username, profileId, isOwner, balanceDollars }: UserSidebarProps) {
+export function UserSidebar({ open, onClose, username, balanceDollars }: UserSidebarProps) {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
